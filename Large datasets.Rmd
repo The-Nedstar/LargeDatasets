@@ -7,6 +7,61 @@ bibliography: references.bib
   no-cite: @whitlock2020analysis
 ---
 
+## Initialisation
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r}
+library(Rcompadre)
+library(tidyverse)
+library(here)
+library(phytools)
+library(taxize)
+library(Rage)
+library(popbio)
+rm(list = ls())
+```
+
+# introduction
+
+# Compadre
+
+## Acessing Data
+
+```{r}
+Comadre <- cdb_fetch("comadre")
+ComSub <- subset(Comadre,
+                   Class == "Aves" & #
+                   MatrixTreatment == "Unmanipulated" &
+                   MatrixCaptivity == "W") 
+```
+
+## Manipulation
+
+```{r}
+ComFlag <- cdb_flag(ComSub)
+ComSubFlag <- subset(ComSubFlag,
+                      check_NA_A == FALSE &
+                      check_ergodic == TRUE)
+```
+
+## Growth rates
+
+```{r}
+ComSub$lambda <- unlist(lapply(matA(ComSub), popbio::lambda))
+
+#Examine the distribution of population growth rates:
+GrowthHist <- ggplot(ComSub, aes(x = lambda)) +
+  geom_histogram()+
+  geom_abline(y=1)
+
+GrowthHist
+```
+
+# IUCN RedList
+
+# open tree of life
+
+# 
