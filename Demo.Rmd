@@ -229,7 +229,7 @@ species:
 ```{r, message=FALSE, error=FALSE, warning=FALSE}
 #Identifying which species names are unique:
 unique_comadre <- unique(comadre_sub$SpeciesAccepted)
-unique_comadre
+unique_comadre 
 #Resulting in 37 mammal species
 
 #We could sample a single MPM wihtin each species in different ways, but here we are going to simply selecting the first entry in the whole of comadre_sub where there is a new species using the command 'duplicated'. This function examines element by element in a vector whether the next element has already appeared before in the vector.
