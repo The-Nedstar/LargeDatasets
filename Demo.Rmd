@@ -270,10 +270,11 @@ library(taxize)
 #This is the token that I obtained from the steps detailed above. It is entirely possible that the API of the IUCN will reject so many requests from independent computers using the same token... so be patient!
 
 #https:/apiv3.iucnredlist.org', provide IUCN access
-API_token <- "8d9c556bb4aa2efeacdc49775c0d0514b42139c96d5ed0f6b9ca5a495ffa49a4"
+IUCN_data<- read.csv(here("IUCN_comadre_compadre.csv"))
+# comadre_sub$kingdom <- as.factor(comadre_sub$kingdom)
+# comadre_sub$IUCNstatus <- as.factor(comadre_sub$IUCNstatus)
+# comadre_sub$SpeciesAccepted <- as.factor(comadre_sub$SpeciesAccepted)
 
-#run the summary from IUCN for our species names
-IUCN.list <- read.csv(here("IUCN_comadre_compadre.csv"))
 ```
 
 With these data, we want to do some wrangling. This will be the case
@@ -283,16 +284,9 @@ which there are 37. Then we will bind this information back on to the
 comadre data.
 
 ```{r}
-#This IUCN list contains a lot of information for each species. We just want 
-#their classification and their species name to link to the species
+
 library(tidyverse)
 
-IUCN_data <- lapply(IUCN.list, function(x){
-  return(tibble(IUCNstatus = x$status))}) %>% 
-  bind_rows() %>% 
-  mutate(SpeciesAccepted = comadre_sub$SpeciesAccepted)
-
-#Now link back to original data using the left_join() function
 comadre_iucn <- comadre_sub %>%
   left_join(x = ., y = IUCN_data, by = "SpeciesAccepted") %>% 
   mutate(IUCNstatus = case_when(
@@ -308,6 +302,7 @@ comadre_iucn <- comadre_sub %>%
 
 dim(comadre_iucn)
 
+dim(comadre_iucn)
 #We are going to flatten out this object into a simple data.frame
 comadre_iucn <- as.data.frame(comadre_iucn) 
 
@@ -327,7 +322,6 @@ generation time, on the one hand, and population growth rate, on the
 other, with IUCN status of mammals in COMADRE:
 
 ```{r}
-
 ggplot(comadre_iucn, aes(x = IUCNstatus, y = gen_T, 
                          fill = IUCNstatus)) + 
   geom_boxplot(show.legend = F) +
