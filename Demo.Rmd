@@ -1,0 +1,496 @@
+---
+title: "Large datasets, focus on online access and management in R"
+author: "Rob Salguero-Gómez (rob.salguero@biology.ox.ac.uk)"
+date: "12/02/2025"
+output:
+  html_document: default
+  pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Necessary packages that you'll need to install using the
+"install.packages(" ... ")" command: - MOSAIC - phytools - popbio -
+popdemo - Rage - Rcompadre - remotes - rotl (the open tree of life) -
+taxize - tidyverse
+
+## 0. Introduction
+
+In this computing practical, you will access multiple resources online
+to draw inferences on ecological processes at the regional and global
+levels. Namely, you will access the following online repositories to
+obtain information: - COMADRE Matrix Animal Database: an open-access
+repository of animal demographic information. - IUCN Redlist: dataset of
+conservation status of animals, plants, and fungi - The open tree of
+life: A repository to pull phylogenetic trees
+
+The following sections walk you through how to access, download, and
+manipulate the information step by step:
+
+## 1. Accessing demographic data:
+
+COMADRE is a database of matrix population models (MPMs, hereafter) for
+animal species. This open-access repository can be further investigated
+here: <https://compadre-db.org>, where you will also find information
+about the demography of plants (COMPADRE). COMADRE currently contains
+3,488 MPMs from 415 studies across 429 animal species.
+
+In your lectures in years 2, you were introduced to MPMs, and have more
+recently examined their transient behaviour in an ecology resilience
+context. From those lectures, you may remember that MPMs describe the
+dynamics of a given population in discrete time (e.g. last year, this
+year; a week ago vs. today; 12h ago vs. now). MPMs explicitly consider
+how key demographic processes, such as survival and reproduction (a.k.a.
+"vital rates"), change among individuals in the studied population as a
+function of key properties of individuals in it. Specifically, these
+models examine how individual heterogeneity relates to the values of
+these vital rates by studying the role that one (or more)
+individual-level characteristics (a.k.a. "states") has/have on the vital
+rates. In MPMs, individuals in the population are typically classified
+by age (e.g. 0, 1, 2 years old), developmental stage (e.g. juvenile,
+adult, senescent), and/or size ranges (e.g. short, medium, tall).
+
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+#Clear the R environment
+rm(list = ls())
+
+#Install the package Rcompadre, which will allow you to access COMADRE (and COMPADRE) online
+#install.packages("Rcompadre")
+#install.packages("tidyverse) # this is for data wrangling
+
+#Call the library so you can start using it:
+library(Rcompadre)
+library(tidyverse)
+library(here)
+
+#Fetch the most recent database version from www.compadre-db.org with:
+comadre <- cdb_fetch("comadre") #or use 'compadre' for the plant database
+
+#or load from a local .Rdata file by first downloading it here: 
+#https://compadre-db.org/Data/Comadre#, and using the command
+#comadre <- cdb_fetch("path/to/file/COMADRE_v.4.21.8.0.Rdata")
+#Note that you will first have to identify the "path/to/file" 
+#where you saved your file.
+
+#The command 'dim' outputs the dimensions of an object, thus giving you an idea of how many row entries and column variables there are in the original database:
+dim(comadre)
+
+```
+
+COMADRE contains the key MPM information as well as plenty of metadata.
+To explore what the names of the metadata mean, please consult with:
+<https://jonesor.github.io/CompadreGuides/user-guide.html>). Briefly,
+the metadata contains information relating to: - Full taxonomy of the
+studied species (e.g., Kingdom, Phylum, Class,..., accepted Latin name,
+common name) - Original source (e.g. year of publication, journal name,
+authors) - Details of the study (e.g. start and end year, criteria used
+to construct the MPM, GPS coordinates of the population, etc.)
+
+```{r}
+#Explore the metadata in COMADRE
+comadre@data
+
+#Take a subset of the database so you only consider mammal populations 
+#located in the Northern Hemisphere and not from captivity, so their population growth rates are more biologically meaningfull:
+comadre1 <- subset(comadre,
+                   # Consider only mammals
+                   Class == "Mammalia" & 
+                   # with GPS latitude located in the North hemisphere
+                   Lat > "0" &
+                   # studied under "control" (i.e. no treatment) conditions
+                   MatrixTreatment == "Unmanipulated" &
+                   # and only from "W"ild populations
+                   MatrixCaptivity == "W")              
+
+#Check that the subset has indeed resulted in a smaller dataset 
+#compared to the original source:
+dim(comadre1)
+```
+
+There is a bit of more fine-tuning we need to do before we can calculate
+demographic properties from these MPMs. We will use the function
+cdb_flag() to add columns to the database flagging potential issues with
+these MPMs, such as missing values, or MPMs that don’t meet assumptions
+necessary to calculate population growth rates (like ergodicity,
+irreducibility, or primitivity - you can read more on that here:
+<https://onlinelibrary.wiley.com/doi/full/10.1111/j.1461-0248.2011.01659.x>).
+
+```{r}
+comadre_flags <- cdb_flag(comadre1)
+
+#We will only be able to calculate population growth rates from matrices 
+#that don’t contain missing values, and we only want to use matrices that 
+#meet the assumption of ergodicity, so we’ll subset the database accordingly.
+comadre_sub <- subset(comadre_flags,
+                      check_NA_A == FALSE &
+                      check_ergodic == TRUE)
+
+#Check size of subset data again:
+dim(comadre_sub)
+```
+
+Now that you have subset the data to narrow-down your research to
+mammals, you may want to take a look at some MPMs in the data. Whenever
+possible, the MPM of a species, examined at a given location, interval,
+and under a given kind of experimental manipulation (e.g. control, fire,
+hunting, etc.) has been split by the COM(P)ADRE team into its
+constituent submatrices, such that the matrix *A*, is the summation of
+the submatrices that describe processes that depend on survival
+(submatrix *U*), on sexual reproduction (*F*), and clonality (*C*). Note
+that when a given animal does not reproduce clonally, *C* is a matrix of
+zeros.
+
+```{r}
+#Explore some MPMs in your subset database
+#The first MPM stored in your data is:
+matA(comadre_sub)[[1]]
+
+#And the submatrices *U*, *F*, and *C* are:
+matU(comadre_sub)[[1]]
+matF(comadre_sub)[[1]]
+matC(comadre_sub)[[1]]
+
+#This MPM corresponds to the following metadata
+comadre_sub@data[1,]
+
+#You can explore other hits by changing "1" for another index number
+```
+
+Now we are going to obtain some key properties from these MPM. Namely,
+we will estimate population growth rate and generation time. As you may
+remember from lecture, the population growth rate ($\lambda$)
+corresponds to the dominant eigenvalue of the MPM *A*, and it projects
+the rate of growth (if $\lambda$ \> 1) or decline ($\lambda$ \< 1) of
+the population. One of the three definitions of generation time (T) is
+the mean age of reproductive individuals in the population. This life
+history trait is tightly linked to the rate of population turnover, and
+it is frequently used in assessments of vulnerability of the IUCN (e.g.
+<https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.13368>).
+
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+#Obtain population growth rates using the function 
+#"lambda" from the R package "popbio
+#install.packages("popbio")
+library("popbio")
+
+#Using lapply (which applies a function to every element in a list), 
+#we will calculate the population growth rate (lambda) for each matrix
+comadre_sub$lambda <- unlist(lapply(matA(comadre_sub), popbio::lambda))
+
+#Examine the distribution of population growth rates:
+hist(comadre_sub$lambda, xlab= "Population growth rate", main = NULL)
+abline(v = 1, col = 'red', lty = 2, lwd = 2)
+
+#To calculate generation time, we will use the R package "Rage"
+#install.packages("Rage")
+library("Rage")
+
+#Again using lapply, we will now use the U and F matrices 
+#to calculate the generation time - look at the function to 
+#see the equation here
+comadre_sub$gen_T <- mapply(Rage::gen_time, matU(comadre_sub), matF(comadre_sub))
+
+#In the code above, the accessor function matA() is used to extract a list 
+#of projection matrices (the full matrix, matA) from every row of comadre_sub. 
+#There are also accessor functions for the matrix subcomponents (matU(), 
+#matF(), matC()), and for many other parts of the database too.
+
+#Examine the distribution of generation times:
+hist(comadre_sub$gen_T, xlab = "Generation time (years)", main = NULL)
+
+#To plot population growth rate and generation time in the phylogeny (Section 3, below), we must have data of these variables that is numeric (e.g. no NAs, no Inf), so we need to eliminate rows with such values:
+if (length(which(is.na(comadre_sub$lambda)))>0) {
+  comadre_sub <- comadre_sub[-which(is.na(comadre_sub$lambda)),]
+}
+
+if (length(which(is.na(comadre_sub$gen_T)))>0) {
+  comadre_sub <- comadre_sub[-which(is.na(comadre_sub$gen_T)),]
+}
+
+if (length(which(is.infinite(comadre_sub$gen_T)))>0) {
+  comadre_sub <- comadre_sub[-which(is.infinite(comadre_sub$gen_T)),]
+}
+
+```
+
+Note that the object 'comadre_sub' contains quite a few MPMs for each
+species. Sometimes these MPMs correspond to different years (e.g., 2000
+to 2001, 2001, to 2002...) within the same population, and sometimes
+they may refer to different populations, or even come from different
+publications/research groups. As such, for the purposes of today's
+exercise, and in the interest of time, we will only sample one MPM per
+species:
+
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+#Identifying which species names are unique:
+unique_comadre <- unique(comadre_sub$SpeciesAccepted)
+unique_comadre
+#Resulting in 37 mammal species
+
+#We could sample a single MPM wihtin each species in different ways, but here we are going to simply selecting the first entry in the whole of comadre_sub where there is a new species using the command 'duplicated'. This function examines element by element in a vector whether the next element has already appeared before in the vector.
+comadre_sub <- comadre_sub[which(duplicated(comadre_sub$SpeciesAccepted)==FALSE),]
+dim(comadre_sub)
+
+```
+
+## 2. Accessing IUCN Red list status data:
+
+Established in 1964, the International Union for Conservation of
+Nature’s Red List of Threatened Species has evolved to become the
+world’s most comprehensive information source on the global conservation
+status of animal, fungi and plant species. The IUCN Red List is a
+critical indicator of the health of the world’s biodiversity. Far more
+than a list of species and their status, it is a powerful tool to inform
+and catalyze action for biodiversity conservation and policy change,
+critical to protecting the natural resources we need to survive. It
+provides information about range, population size, habitat and ecology,
+use and/or trade, threats, and conservation actions that will help
+inform necessary conservation decisions.
+
+To access the API (Application Programming Interface) of the IUCN, you
+might want to apply for a token, which can take a few days, or simply
+use the one I am providing you below. Do please feel free to apply for
+your own token if you would like - to do so by following these steps:
+<https://apiv3.iucnredlist.org>. Watch details here:
+<https://www.youtube.com/watch?v=4T6GXtptmj4>
+
+However, to expedite this step, I have accessed and downloaded the data
+already:
+
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+#Install and call the R package 
+#install.packages("taxize")
+library(taxize)
+
+#This is the token that I obtained from the steps detailed above. It is entirely possible that the API of the IUCN will reject so many requests from independent computers using the same token... so be patient!
+
+#https:/apiv3.iucnredlist.org', provide IUCN access
+API_token <- "8d9c556bb4aa2efeacdc49775c0d0514b42139c96d5ed0f6b9ca5a495ffa49a4"
+
+#run the summary from IUCN for our species names
+IUCN.list <- read.csv(here("IUCN_comadre_compadre.csv"))
+```
+
+With these data, we want to do some wrangling. This will be the case
+almost every time you access data online. Here, we just want information
+on the IUCN redlist status of each of our unique mammal species, of
+which there are 37. Then we will bind this information back on to the
+comadre data.
+
+```{r}
+#This IUCN list contains a lot of information for each species. We just want 
+#their classification and their species name to link to the species
+library(tidyverse)
+
+IUCN_data <- lapply(IUCN.list, function(x){
+  return(tibble(IUCNstatus = x$status))}) %>% 
+  bind_rows() %>% 
+  mutate(SpeciesAccepted = comadre_sub$SpeciesAccepted)
+
+#Now link back to original data using the left_join() function
+comadre_iucn <- comadre_sub %>%
+  left_join(x = ., y = IUCN_data, by = "SpeciesAccepted") %>% 
+  mutate(IUCNstatus = case_when(
+    IUCNstatus == "EN" ~ "Endangered",
+    IUCNstatus == "VU" ~ "Vulnerable",
+    IUCNstatus == "NT" ~ "Near Threatened",
+    IUCNstatus == "LC" ~ "Least Concern",
+    is.na(IUCNstatus) == TRUE ~ "Not Assessed"),
+    IUCNstatus = factor(IUCNstatus, 
+                        levels = c("Endangered","Vulnerable",
+                                   "Near Threatened","Least Concern",
+                                   "Not Assessed")))
+
+dim(comadre_iucn)
+
+#We are going to flatten out this object into a simple data.frame
+comadre_iucn <- as.data.frame(comadre_iucn) 
+
+#Adding colours to the IUCN categories
+comadre_iucn$iucn_colour <- NA
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Endangered")] <- "Orange" 
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Vulnerable")] <- "Yellow"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Near Threatened")] <- "Dark green"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Least Concern")] <- "Green"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Not Assessed")] <- "Blue"
+
+  
+```
+
+Now explore both visually and statistically the relationships between
+generation time, on the one hand, and population growth rate, on the
+other, with IUCN status of mammals in COMADRE:
+
+```{r}
+
+ggplot(comadre_iucn, aes(x = IUCNstatus, y = gen_T, 
+                         fill = IUCNstatus)) + 
+  geom_boxplot(show.legend = F) +
+  geom_jitter(width = 0.2, show.legend = F) +
+  scale_fill_viridis_d(option = "B", begin = 0.3, end = 0.8) +
+  labs(x = "IUCN redlist status", y = "Generation time (years)") +
+  theme_classic(base_size = 14)
+
+ANOVA_gen_T <- aov(gen_T~IUCNstatus, data = comadre_iucn)
+summary(ANOVA_gen_T)
+
+ggplot(comadre_iucn, aes(x = IUCNstatus, y = lambda, 
+                         fill = IUCNstatus)) + 
+  geom_boxplot(show.legend = F) +
+  geom_jitter(width = 0.2, show.legend = F) +
+  scale_fill_viridis_d(option = "B", begin = 0.3, end = 0.8) +
+  labs(x = "IUCN redlist status", y = "Population growth rate") +
+  theme_classic(base_size = 14)
+
+ANOVA_lambda <- aov(lambda~IUCNstatus, data = comadre_iucn)
+summary(ANOVA_lambda)
+
+
+```
+
+From the relationships explored above, generation time -but not
+population growht rate- is predicted by IUCN
+
+## 3. Phylogenetic tree and phylogenetic analyses
+
+The Open Tree of Life is an open-access online repository that offers
+phylogenetic information across the most comprehensive group of species
+across the Tree of Life. Further information can be found here
+[https://tree.opentreeoflife.org/opentree/argus/opentree13.4\@ott93302](https://tree.opentreeoflife.org/opentree/argus/opentree13.4@ott93302){.uri}
+and here
+<https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12593>.
+
+The first step is to run a taxonomic check on your species names, in
+case these are not taxonomically accepted ("up to date" according the
+latest biological evidence regarding species relationships)
+
+```{r}
+
+#Once again, state your species names
+my_taxa <- comadre_iucn$SpeciesAccepted
+
+#Use the command 'tnrs_match_names' to run my_taxa through the API of ROTL to check species names
+resolved_names <- rotl::tnrs_match_names(names = my_taxa)
+
+#The species Hystrix refossa has not been found in the ROTL. This is because the species is an extinct large procupine. All other species passed the quality taxonomic check.
+
+#Inspect the produced table named "resolved_names", which provides taxonomically accepted names, and additional info, such as the unique ott_id that we can then use to obtain phylogenetic tree information from OTL
+resolved_names
+
+#We need to eliminate any species whose ott_id is NA to proceed with the following steps and then re-do the previous steps:
+comadre_iucn$ott_id <- resolved_names$ott_id
+dim(comadre_iucn)
+comadre_iucn <- comadre_iucn[-which(is.na(comadre_iucn$ott_id)),]
+dim(comadre_iucn)
+
+my_taxa <- comadre_iucn$SpeciesAccepted
+resolved_names <- rotl::tnrs_match_names(names = my_taxa)
+comadre_iucn$OTL_unique_name <- resolved_names$unique_name
+
+#Adding the names of the species to the data.frame for later merging to the phylogenetic tree with this data.frame
+row.names(comadre_iucn) <- resolved_names$unique_name
+
+#Obtain the phylogenetic tree for your species
+my_tree <- rotl::tol_induced_subtree(resolved_names$ott_id)
+
+#Plot the tree:
+plot(my_tree)
+
+#Delete the ott ids for easier plotting:
+my_tree$tip.label <- gsub('_ott', '', my_tree$tip.label)
+my_tree$tip.label <- gsub('[0-9]+', '', my_tree$tip.label)
+my_tree$tip.label <- gsub('_', ' ', my_tree$tip.label)
+
+my_tree$tip.label
+
+#Just to make things more interesting, you'll notice that node number 16 in this tree has a weird name "mrcaottott", which is a mistake we have reported to OTL. This should be Alouatta seniculus, the Colombian red howler. Let's fix it!
+my_tree$tip.label[my_tree$tip.label=="mrcaottott"] <- "Alouatta seniculus"
+
+
+plot(my_tree)
+
+#Plot it in radial format
+plot(my_tree, type = "fan")
+
+```
+
+Now let's try to do something more interesting. Let us map the values of
+IUCN status, population growth rate, and generation time along the
+phylogeny to examine potential patterns of phylogenetic association. For
+that, the tree we obtained from OTL will not work because the branches
+are not dated. That is, the tree holds the structure, but has no
+information about the time since emergence between sister clades.
+Instead, we will turn to a tree that I have prepared for you that does
+have that information
+
+```{r}
+#We will be using the R package phytools
+#install.packages("phytools")
+library(phytools)
+
+#Download the tree, save it in a folder in the computer, and change the writing directory to the appropriate place in the command below before you read the tree in:
+#setwd("...")
+tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+
+#This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
+plot(tree)
+
+#Let's clean up the names in the tree, so we can compare them with the names in our object
+tree$tip.label <- gsub("_", " ", tree$tip.label)
+
+#Now we need to "prune" the tree, which means to cut out the branches that are not present in our data:
+pruned_tree <- drop.tip(tree, setdiff(tree$tip.label, comadre_iucn$OTL_unique_name))
+
+#The resulting tree has 34 tips, meaning 34 species
+pruned_tree
+
+#So naturally it seems like we are missing some from our object, which are not present in the tree.
+comadre_iucn$OTL_unique_name[which(comadre_iucn$OTL_unique_name%in%pruned_tree$tip.label==F)]
+
+#So we now have to elimnate "Canis lupus" and "Theropithecus gelada" from our data to proceed with the next steps:
+comadre_iucn <- comadre_iucn[-which(comadre_iucn$OTL_unique_name%in%pruned_tree$tip.label==F),]
+dim(comadre_iucn)
+
+#Next, we need to reorder the comadre_iucn order so the species appear in the same order in which they appear in the tree
+comadre_iucn <- comadre_iucn[match(pruned_tree$tip.label,comadre_iucn$OTL_unique_name),]
+dim(comadre_iucn)
+
+#Checking that the order is the same between the object and the tree
+comadre_iucn$OTL_unique_name
+pruned_tree$tip.label
+
+# Let us now plot the values of population growth rate at the tips of the phylogeny, and reconstruct the ancestral state of the originating lineange
+log_lambdas <- log(setNames(comadre_iucn$lambda, rownames(comadre_iucn)))
+
+# create "contMap" object, which allows for the reconstruction of likely ancestral traits
+#my_tree2<-di2multi(pruned.tree)
+
+mammal_contMap_lambda <- contMap(pruned_tree, log_lambdas,plot=FALSE,res=200)
+mammal_contMap_lambda <- setMap(mammal_contMap_lambda, c("white","#FFFFB2","#FECC5C","#FD8D3C","#E31A1C"))
+plot(mammal_contMap_lambda, fsize=c(0.7,0.8), leg.txt="log(population growth rate)")
+par(mar=c(5.1,4.1,4.1,2.1)) ## reset margins to default
+
+#Let's do the same thing for generation time
+log_gen_T <- log(setNames(comadre_iucn$gen_T, rownames(comadre_iucn)))
+mammal_contMap_gen_T <- contMap(pruned_tree, log_gen_T,plot=FALSE,res=200)
+mammal_contMap_gent_T <- setMap(mammal_contMap_gen_T, c("white","light blue","blue","violet","purple"))
+plot(mammal_contMap_gent_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+
+```
+
+## Further references:
+
+<https://compadre-db.org>
+
+<https://github.com/jonesor/Rcompadre>
+
+<https://jonesor.github.io/Rage/>
+
+<https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12593>
+
+<http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html>
