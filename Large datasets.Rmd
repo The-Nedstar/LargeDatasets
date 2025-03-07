@@ -7,6 +7,75 @@ bibliography: references.bib
   no-cite: @whitlock2020analysis
 ---
 
+## Initialisation
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r}
+library(Rcompadre)
+library(tidyverse)
+library(here)
+library(phytools)
+library(taxize)
+library(Rage)
+library(popbio)
+rm(list = ls())
+```
+
+# introduction
+
+# Compadre
+
+## Acessing Data
+
+```{r}
+Comadre <- cdb_fetch("comadre")
+ComSub <- subset(Comadre,
+                   Class == "Aves" & #
+                   MatrixTreatment == "Unmanipulated" &
+                   MatrixCaptivity == "W") 
+```
+
+## Manipulation
+
+```{r}
+ComFlag <- cdb_flag(ComSub)
+ComSubFlag <- subset(ComFlag,
+                      check_NA_A == FALSE &
+                      check_ergodic == TRUE)
+```
+
+## Growth rates
+
+```{r}
+ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
+                                   popbio::lambda))
+
+#Examine the distribution of population growth rates:
+GrowthHist <- ggplot(ComSubFlag, aes(x = lambda)) +
+  geom_histogram(aes(fill = as.factor(floor(..x.. / 0.2) %% 2)),
+                 binwidth = 0.2, boundary = 1, 
+                 colour = "black", size = 0.4)+
+  geom_vline(xintercept = 1, colour = "red", 
+             size = 1.3, linetype = "21")+
+  scale_fill_manual(values = c("#707070", "#606060")) +
+  theme_bw()+
+  theme(
+    legend.position = "none",
+    axis.title = element_text(size = 14),
+    title = element_text(size = 15)
+  ) +
+  xlab("Population Growth Rate") +
+  ylab("Frequency") +
+  ggtitle("Histogram of Growth Rate Within the Aves Clade")
+
+GrowthHist
+```
+
+# IUCN RedList
+
+# open tree of life
+
+# 
