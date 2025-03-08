@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+rm(list = ls())
 library(Rcompadre)
 library(tidyverse)
 library(here)
@@ -21,7 +22,7 @@ library(phytools)
 library(taxize)
 library(Rage)
 library(popbio)
-rm(list = ls())
+source(here("Functions.R"))
 ```
 
 # introduction
@@ -47,35 +48,100 @@ ComSubFlag <- subset(ComFlag,
                       check_ergodic == TRUE)
 ```
 
-## Growth rates
+## Data
 
-```{r}
+### Histograms
+
+```{r warning=FALSE, message=FALSE}
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
                                    popbio::lambda))
 
+ComSubFlag$generation_time <- unlist(lapply(matA(ComSubFlag), 
+                                   popbio::generation.time))
+GVG <- as_data_frame(ComSubFlag) %>%
+  select(lambda, generation_time) %>% 
+  mutate(across(everything(), ~ na_if(., Inf))) %>% 
+  mutate(across(everything(), ~ na_if(., -Inf))) %>%
+  drop_na()
+
 #Examine the distribution of population growth rates:
-GrowthHist <- ggplot(ComSubFlag, aes(x = lambda)) +
-  geom_histogram(aes(fill = as.factor(floor(..x.. / 0.2) %% 2)),
-                 binwidth = 0.2, boundary = 1, 
-                 colour = "black", size = 0.4)+
-  geom_vline(xintercept = 1, colour = "red", 
-             size = 1.3, linetype = "21")+
-  scale_fill_manual(values = c("#707070", "#606060")) +
-  theme_bw()+
-  theme(
-    legend.position = "none",
-    axis.title = element_text(size = 14),
-    title = element_text(size = 15)
-  ) +
-  xlab("Population Growth Rate") +
-  ylab("Frequency") +
-  ggtitle("Histogram of Growth Rate Within the Aves Clade")
+GrowthHist <- histogram(GVG, GVG$lambda,
+                        "Population Growth Rate(λ)", 
+                        "Histogram of Growth Rate Within the Aves Clade"
+                        , 0.2, TRUE)
+
+GenHist <- histogram(GVG, GVG$generation_time,
+                        "Generation Time (years)", 
+                        "Histogram of Generation Time Within the Aves Clade"
+                        , 1, FALSE)
+
+
 
 GrowthHist
+GenHist
+```
+
+### relationship
+
+```{r warning=FALSE, message=FALSE}
+GenVGrowth <- scatterplot(GVG, GVG$generation_time, 
+                          "Generation Time (years)", 
+                          GVG$lambda,
+                          "Growth Rate (λ)", 
+                          "Generation time Vs Growth Rate in the Aves Clade"
+                          , FALSE)
+
+GVGMod <- lm(lambda ~ generation_time, GVG)
+
+summary(GVGMod)
+
+GenVGrowth2 <- scatterplot(GVG, GVG$generation_time, 
+                          "Generation Time (years)", 
+                          GVG$lambda,
+                          "Growth Rate (λ)", 
+                          "Generation time Vs Growth Rate in the Aves Clade"
+                          , TRUE)
+GenVGrowth
+GenVGrowth2
+```
+
+## seperating duplicates?
+
+```{r}
+ComSingle <- ComSubFlag[which(
+  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
 ```
 
 # IUCN RedList
 
-# open tree of life
+## Acessing data
 
-# 
+-   due to issues with data having to load from computer
+
+```{r}
+IUCN_data<- read.csv(here("IUCN_comadre_compadre.csv"))
+
+comadre_iucn <- comadre_sub %>%
+  left_join(x = ., y = IUCN_data, by = "SpeciesAccepted") %>% 
+  mutate(IUCNstatus = case_when(
+    IUCNstatus == "EN" ~ "Endangered",
+    IUCNstatus == "VU" ~ "Vulnerable",
+    IUCNstatus == "NT" ~ "Near Threatened",
+    IUCNstatus == "LC" ~ "Least Concern",
+    is.na(IUCNstatus) == TRUE ~ "Not Assessed"),
+    IUCNstatus = factor(IUCNstatus, 
+                        levels = c("Endangered","Vulnerable",
+                                   "Near Threatened","Least Concern",
+                                   "Not Assessed")))
+
+comadre_iucn <- as.data.frame(comadre_iucn)
+
+comadre_iucn$iucn_colour <- NA
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Endangered")] <- "Orange" 
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Vulnerable")] <- "Yellow"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Near Threatened")] <- "Dark green"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Least Concern")] <- "Green"
+comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Not Assessed")] <- "Blue"
+```
+
+# open tree of life
