@@ -4,7 +4,8 @@ author: "Anonymous"
 date: "2025-03-06"
 output: html_document
 bibliography: references.bib
-  no-cite: @whitlock2020analysis
+  nocite: |
+    @wickham2023r
 ---
 
 ## Initialisation
@@ -14,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-rm(list = ls())
+#rm(list = ls())
 library(Rcompadre)
 library(tidyverse)
 library(here)
@@ -22,6 +23,7 @@ library(phytools)
 library(taxize)
 library(Rage)
 library(popbio)
+library(svglite)
 source(here("Functions.R"))
 ```
 
@@ -91,17 +93,34 @@ GenVGrowth <- scatterplot(GVG, GVG$generation_time,
                           "Generation time Vs Growth Rate in the Aves Clade"
                           , FALSE)
 
-GVGMod <- lm(lambda ~ generation_time, GVG)
-
-summary(GVGMod)
-
-GenVGrowth2 <- scatterplot(GVG, GVG$generation_time, 
-                          "Generation Time (years)", 
-                          GVG$lambda,
-                          "Growth Rate (λ)", 
-                          "Generation time Vs Growth Rate in the Aves Clade"
-                          , TRUE)
 GenVGrowth
+```
+
+### Linear model
+
+normal
+
+```{r}
+GVGMod <- lm(lambda ~ generation_time, GVG)
+diagnostic_plots("GVGMod DP.svg", GVGMod)
+```
+
+log transformed
+
+```{r}
+LGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GVG)
+diagnostic_plots("LGVGMod DP.svg", LGVGMod)
+```
+
+### Plotting
+
+```{r}
+GenVGrowth2 <- scatterplot(GVG, log(GVG$generation_time), 
+                          "Log transformed Generation Time (years)", 
+                          log(GVG$lambda),
+                          "Log transformed Growth Rate (λ)", 
+                          "Log Generation time Vs Growth Rate in the Aves Clade"
+                          , TRUE)
 GenVGrowth2
 ```
 

@@ -44,3 +44,13 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line){
     ggtitle(Title)
   return(temp)
 }
+
+### Create Diagnostic plots
+diagnostic_plots <- function(File, Model) {
+  svglite(here("Figures", File), width = 10,
+          height = 8,
+          scaling = 1.3)
+  par(mfrow=c(2,2))
+  DiaPlots <- (plot(Model,1) | plot(Model,2)) / (plot(Model,3) | plot(Model,5))
+  dev.off()
+}
