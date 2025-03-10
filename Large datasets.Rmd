@@ -101,15 +101,43 @@ GenVGrowth
 normal
 
 ```{r}
+CGVG <- subset(GVG, generation_time < 50)
+
 GVGMod <- lm(lambda ~ generation_time, GVG)
 diagnostic_plots("GVGMod DP.svg", GVGMod)
+
+CGVGMod <- lm(lambda ~ generation_time, CGVG)
+diagnostic_plots("CGVGMod DP.svg", CGVGMod)
 ```
 
 log transformed
 
 ```{r}
-LGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GVG)
+LGVGMod <- lm(log(lambda) ~ log(generation_time), GVG)
 diagnostic_plots("LGVGMod DP.svg", LGVGMod)
+
+LCGVGMod <- lm(log(lambda) ~ log(generation_time), CGVG)
+diagnostic_plots("LCGVGMod DP.svg", LCGVGMod)
+```
+
+polynomial
+
+```{r}
+PGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GVG)
+diagnostic_plots("PGVGMod DP.svg", PGVGMod)
+
+PCGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGVG)
+diagnostic_plots("PCGVGMod DP.svg", PCGVGMod)
+```
+
+generalized
+
+```{r}
+GGVGMod <- glm(lambda ~ generation_time, GVG)
+diagnostic_plots("GGVGMod DP.svg", GGVGMod)
+
+GGVGMod <- glm(lambda ~ generation_time, CGVG)
+diagnostic_plots("GCGVGMod DP.svg", GCGVGMod)
 ```
 
 ### Plotting
