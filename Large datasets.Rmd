@@ -5,7 +5,7 @@ date: "2025-03-06"
 output: html_document
 bibliography: references.bib
   nocite: |
-    @wickham2023r
+    @wickham2023r, @nichols
 ---
 
 ## Initialisation
@@ -24,6 +24,7 @@ library(taxize)
 library(Rage)
 library(popbio)
 library(svglite)
+library(ggbeeswarm)
 source(here("Functions.R"))
 ```
 
@@ -34,11 +35,13 @@ source(here("Functions.R"))
 ## Acessing Data
 
 ```{r}
+class <- "Aves"
+ClassName <- paste(class, "class")
 Comadre <- cdb_fetch("comadre")
 ComSub <- subset(Comadre,
-                   Class == "Aves" & #
+                   Class == class & #
                    MatrixTreatment == "Unmanipulated" &
-                   MatrixCaptivity == "W") 
+                   MatrixCaptivity == "W")
 ```
 
 ## Manipulation
@@ -69,12 +72,12 @@ GVG <- as_data_frame(ComSubFlag) %>%
 #Examine the distribution of population growth rates:
 GrowthHist <- histogram(GVG, GVG$lambda,
                         "Population Growth Rate(λ)", 
-                        "Histogram of Growth Rate Within the Aves Clade"
+                        paste("Histogram of Growth Rate Within the ", ClassName)
                         , 0.2, TRUE)
 
 GenHist <- histogram(GVG, GVG$generation_time,
                         "Generation Time (years)", 
-                        "Histogram of Generation Time Within the Aves Clade"
+                        paste("Histogram of Generation Time Within the ", ClassName)
                         , 1, FALSE)
 
 
@@ -83,14 +86,14 @@ GrowthHist
 GenHist
 ```
 
-### relationship
+## relationship
 
 ```{r warning=FALSE, message=FALSE}
 GenVGrowth <- scatterplot(GVG, GVG$generation_time, 
                           "Generation Time (years)", 
                           GVG$lambda,
                           "Growth Rate (λ)", 
-                          "Generation time Vs Growth Rate in the Aves Clade"
+                          paste("Generation time Vs Growth Rate in the ", ClassName)
                           , FALSE)
 
 GenVGrowth
@@ -140,14 +143,36 @@ GGVGMod <- glm(lambda ~ generation_time, CGVG)
 diagnostic_plots("GCGVGMod DP.svg", GCGVGMod)
 ```
 
+## Spearman's rank correlation coefficient
+
+-   other things very much not working
+
+-   so trying a non parametric method
+
+-   meets the assumptions
+
+    -   monotonic
+
+    -   outlier doesn't matter as robust
+
+    -   indepedent observations
+
+```{r}
+cor.test(GVG$lambda, GVG$generation_time, method = "spearman")
+```
+
+-   very significant
+
+-   moderate positive correlation, but doesn't describe the data too well
+
 ### Plotting
 
 ```{r}
-GenVGrowth2 <- scatterplot(GVG, log(GVG$generation_time), 
-                          "Log transformed Generation Time (years)", 
-                          log(GVG$lambda),
-                          "Log transformed Growth Rate (λ)", 
-                          "Log Generation time Vs Growth Rate in the Aves Clade"
+GenVGrowth2 <- scatterplot(GVG, GVG$generation_time, 
+                          "Generation Time (years)", 
+                          GVG$lambda,
+                          "Growth Rate (λ)", 
+                          paste("Generation time Vs Growth Rate in the", ClassName)
                           , TRUE)
 GenVGrowth2
 ```
@@ -168,7 +193,7 @@ ComSingle <- ComSubFlag[which(
 ```{r}
 IUCN_data<- read.csv(here("IUCN_comadre_compadre.csv"))
 
-comadre_iucn <- comadre_sub %>%
+ComIUCN <- ComSubFlag %>%
   left_join(x = ., y = IUCN_data, by = "SpeciesAccepted") %>% 
   mutate(IUCNstatus = case_when(
     IUCNstatus == "EN" ~ "Endangered",
@@ -181,14 +206,47 @@ comadre_iucn <- comadre_sub %>%
                                    "Near Threatened","Least Concern",
                                    "Not Assessed")))
 
-comadre_iucn <- as.data.frame(comadre_iucn)
+ComIUCN <- as.data.frame(ComIUCN)
 
-comadre_iucn$iucn_colour <- NA
-comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Endangered")] <- "Orange" 
-comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Vulnerable")] <- "Yellow"
-comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Near Threatened")] <- "Dark green"
-comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Least Concern")] <- "Green"
-comadre_iucn$iucn_colour[which(comadre_iucn$IUCNstatus == "Not Assessed")] <- "Blue"
+ComIUCN$iucn_colour <- NA
+ComIUCN$iucn_colour[which(ComIUCN$IUCNstatus == "Endangered")] <- "Orange" 
+ComIUCN$iucn_colour[which(ComIUCN$IUCNstatus == "Vulnerable")] <- "Yellow"
+ComIUCN$iucn_colour[which(ComIUCN$IUCNstatus == "Near Threatened")] <- "Dark green"
+ComIUCN$iucn_colour[which(ComIUCN$IUCNstatus == "Least Concern")] <- "Green"
+ComIUCN$iucn_colour[which(ComIUCN$IUCNstatus == "Not Assessed")] <- "Blue"
 ```
+
+## analysis
+
+```{r}
+IUCNVGVG<- as_data_frame(ComIUCN) %>%
+  select(lambda, generation_time, IUCNstatus) %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
+  drop_na()
+```
+
+generation time
+
+```{r}
+
+IUCNVGT <- boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$generation_time, "Generation Time (years)", "")
+IUCNVGT
+
+ANOVAGT <- aov(generation_time ~ IUCNstatus, data = IUCNVGVG)
+summary(ANOVAGT)
+```
+
+Growth Rate
+
+```{r}
+IUCNVL <- boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$lambda, "Growth Rate (λ)", "")
+IUCNVL
+
+ANOVALambda <- aov(lambda ~ IUCNstatus, data = IUCNVGVG)
+summary(ANOVALambda)
+```
+
+-   
 
 # open tree of life
