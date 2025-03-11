@@ -44,3 +44,31 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line){
     ggtitle(Title)
   return(temp)
 }
+
+### Create Diagnostic plots
+diagnostic_plots <- function(File, Model) {
+  svglite(here("Figures", File), width = 10,
+          height = 8,
+          scaling = 1.3)
+  par(mfrow=c(2,2))
+  DiaPlots <- (plot(Model,1) | plot(Model,2)) / (plot(Model,3) | plot(Model,5))
+  dev.off()
+}
+
+## create a boxplot
+boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title){
+  temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis, fill = Xaxis)) +
+    geom_boxplot() +
+    geom_beeswarm(alpha = 0.6, size = 0.75, corral.width = 0.5) +
+    scale_fill_manual(values = c("#E89494", "#A4DFE4", "#8082E4", "#F2D16F", "#EC89E4")) +
+    theme_bw() +
+    theme(
+      legend.position = "none",
+      axis.title = element_text(size = 14),
+      title = element_text(size = 14)
+    ) +
+    xlab(Xtitle) +
+    ylab(Ytitle) +
+    ggtitle(Title)
+  return(temp)
+}
