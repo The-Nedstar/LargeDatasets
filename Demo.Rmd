@@ -429,7 +429,7 @@ library(phytools)
 
 #Download the tree, save it in a folder in the computer, and change the writing directory to the appropriate place in the command below before you read the tree in:
 #setwd("...")
-tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+tree <- Tree
 
 #This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
 plot(tree)

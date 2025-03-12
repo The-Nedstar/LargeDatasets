@@ -4,8 +4,8 @@ author: "Anonymous"
 date: "2025-03-06"
 output: html_document
 bibliography: references.bib
-  nocite: |
-    @wickham2023r, @nichols
+nocite: |
+  @wickham2023r, @nichols
 ---
 
 ## Initialisation
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-#rm(list = ls())
+rm(list = ls())
 library(Rcompadre)
 library(tidyverse)
 library(here)
@@ -250,3 +250,80 @@ summary(ANOVALambda)
 -   
 
 # open tree of life
+
+```{r}
+ComSingle <- ComSubFlag[which(
+  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
+
+temp <- as_data_frame(ComSingle)
+
+ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
+
+ComSingle$ott_id <- ResNames$ott_id
+ComSingle <- ComSingle[-which(is.na(ComSingle$ott_id)),]
+
+temp2 <- as_data_frame(ComSingle)
+
+ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
+
+ComSingle$OTL_unique_name <- ResNames$unique_name
+temp3 <- as_data_frame(ComSingle)
+ComSingle <- as_data_frame(ComSingle)
+row.names(ComSingle) <- ResNames$unique_name
+
+temp4 <- as_data_frame(ComSingle)
+
+Tree <- rotl::tol_induced_subtree(ResNames$ott_id)
+plot(Tree)
+
+Tree$tip.label <- gsub('_ott', '', Tree$tip.label)
+Tree$tip.label <- gsub('[0-9]+', '', Tree$tip.label)
+Tree$tip.label <- gsub('_', ' ', Tree$tip.label)
+
+plot(Tree)
+
+```
+
+```{r}
+
+#This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
+
+tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+
+#Let's clean up the names in the tree, so we can compare them with the names in our object
+tree$tip.label <- gsub("_", " ", tree$tip.label)
+
+ComSingle <- as_data_frame(ComSingle)  %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
+  drop_na(lambda, generation_time)
+
+#Now we need to "prune" the tree, which means to cut out the branches that are not present in our data:
+PrunedTree <- drop.tip(tree, setdiff(tree$tip.label, ComSingle$OTL_unique_name))
+
+#The resulting tree has 34 tips, meaning 34 speci
+
+#So naturally it seems like we are missing some from our object, which are not present in the tree.
+
+ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
+row.names(ComSingle) <- ComSingle$OTL_unique_name
+#Checking that the order is the same between the object and the tree
+
+# Let us now plot the values of population growth rate at the tips of the phylogeny, and reconstruct the ancestral state of the originating lineange
+log_lambdas <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
+# create "contMap" object, which allows for the reconstruction of likely ancestral traits
+
+
+
+Aves_contMap_lambda <- contMap(PrunedTree, log_lambdas,plot=FALSE,res=1000, method="anc.ML")
+Aves_contMap_lambda <- setMap(Aves_contMap_lambda, c("white","#FFFFB2","#FECC5C","#FD8D3C","#E31A1C"))
+plot(Aves_contMap_lambda, fsize=c(0.7,0.8), leg.txt="log(population growth rate)")
+par(mar=c(5.1,4.1,4.1,2.1)) ## reset margins to default
+
+#Let's do the same thing for generation time
+log_gen_T <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
+
+Aves_contMap_gen_T <- contMap(PrunedTree, log_gen_T,plot=FALSE,res=200, method="anc.ML")
+Aves_contMap_gent_T <- setMap(Aves_contMap_gen_T, c("white","light blue","blue","violet","purple"))
+plot(Aves_contMap_gent_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+```
