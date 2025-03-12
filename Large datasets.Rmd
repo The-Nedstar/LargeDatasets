@@ -42,11 +42,6 @@ ComSub <- subset(Comadre,
                    Class == class & #
                    MatrixTreatment == "Unmanipulated" &
                    MatrixCaptivity == "W")
-```
-
-## Manipulation
-
-```{r}
 ComFlag <- cdb_flag(ComSub)
 ComSubFlag <- subset(ComFlag,
                       check_NA_A == FALSE &
@@ -57,7 +52,7 @@ ComSubFlag <- subset(ComFlag,
 
 ### Histograms
 
-```{r warning=FALSE, message=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
                                    popbio::lambda))
 
@@ -88,7 +83,7 @@ GenHist
 
 ## relationship
 
-```{r warning=FALSE, message=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 GenVGrowth <- scatterplot(GVG, GVG$generation_time, 
                           "Generation Time (years)", 
                           GVG$lambda,
@@ -131,16 +126,6 @@ diagnostic_plots("PGVGMod DP.svg", PGVGMod)
 
 PCGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGVG)
 diagnostic_plots("PCGVGMod DP.svg", PCGVGMod)
-```
-
-generalized
-
-```{r}
-GGVGMod <- glm(lambda ~ generation_time, GVG)
-diagnostic_plots("GGVGMod DP.svg", GGVGMod)
-
-GGVGMod <- glm(lambda ~ generation_time, CGVG)
-diagnostic_plots("GCGVGMod DP.svg", GCGVGMod)
 ```
 
 ## Spearman's rank correlation coefficient
