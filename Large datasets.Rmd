@@ -5,7 +5,7 @@ date: "2025-03-06"
 output: html_document
 bibliography: references.bib
 nocite: |
-  @wickham2023r, @nichols
+  @whitlock2020analysis, @nichols
 ---
 
 ## Initialisation
@@ -236,7 +236,7 @@ summary(ANOVALambda)
 
 # open tree of life
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ComSingle <- ComSubFlag[which(
   duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
 
@@ -258,15 +258,6 @@ row.names(ComSingle) <- ResNames$unique_name
 
 temp4 <- as_data_frame(ComSingle)
 
-Tree <- rotl::tol_induced_subtree(ResNames$ott_id)
-plot(Tree)
-
-Tree$tip.label <- gsub('_ott', '', Tree$tip.label)
-Tree$tip.label <- gsub('[0-9]+', '', Tree$tip.label)
-Tree$tip.label <- gsub('_', ' ', Tree$tip.label)
-
-plot(Tree)
-
 ```
 
 ```{r}
@@ -278,7 +269,7 @@ tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
 #Let's clean up the names in the tree, so we can compare them with the names in our object
 tree$tip.label <- gsub("_", " ", tree$tip.label)
 
-ComSingle <- as_data_frame(ComSingle)  %>% 
+ComSingle <- ComSingle  %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
   drop_na(lambda, generation_time)
@@ -311,4 +302,25 @@ log_gen_T <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
 Aves_contMap_gen_T <- contMap(PrunedTree, log_gen_T,plot=FALSE,res=200, method="anc.ML")
 Aves_contMap_gent_T <- setMap(Aves_contMap_gen_T, c("white","light blue","blue","violet","purple"))
 plot(Aves_contMap_gent_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+```
+
+## population performance
+
+using code from [@exercise]
+
+```{r}
+## creating new column
+PopPerf <- 
+  as_data_frame(ComSingle$lambda) %>% 
+  mutate(category = factor(
+    case_when(value < 1  ~ "Decrease",
+              value > 1  ~ "Increase")
+  ))
+
+row.names(PopPerf) <- row.names(ComSingle)
+PopPerf <- as.factor(setNames(PopPerf$category,rownames(PopPerf)))
+
+PerfTree <- dotTree(PrunedTree, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", fsize=0.3)
+
+
 ```
