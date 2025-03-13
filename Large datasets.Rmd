@@ -317,7 +317,6 @@ PopPerf <-
               value > 1  ~ "Increase")
   ))
 
-row.names(PopPerf) <- row.names(ComSingle)
 PopPerf <- as.factor(setNames(PopPerf$category,rownames(PopPerf)))
 
 PerfTree <- dotTree(PrunedTree, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", fsize=0.3)
