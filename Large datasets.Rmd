@@ -4,8 +4,8 @@ author: "Anonymous"
 date: "2025-03-06"
 output: html_document
 bibliography: references.bib
-  nocite: |
-    @wickham2023r, @nichols
+nocite: |
+  @whitlock2020analysis, @nichols
 ---
 
 ## Initialisation
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-#rm(list = ls())
+rm(list = ls())
 library(Rcompadre)
 library(tidyverse)
 library(here)
@@ -42,11 +42,6 @@ ComSub <- subset(Comadre,
                    Class == class & #
                    MatrixTreatment == "Unmanipulated" &
                    MatrixCaptivity == "W")
-```
-
-## Manipulation
-
-```{r}
 ComFlag <- cdb_flag(ComSub)
 ComSubFlag <- subset(ComFlag,
                       check_NA_A == FALSE &
@@ -57,7 +52,7 @@ ComSubFlag <- subset(ComFlag,
 
 ### Histograms
 
-```{r warning=FALSE, message=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
                                    popbio::lambda))
 
@@ -88,7 +83,7 @@ GenHist
 
 ## relationship
 
-```{r warning=FALSE, message=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 GenVGrowth <- scatterplot(GVG, GVG$generation_time, 
                           "Generation Time (years)", 
                           GVG$lambda,
@@ -131,16 +126,6 @@ diagnostic_plots("PGVGMod DP.svg", PGVGMod)
 
 PCGVGMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGVG)
 diagnostic_plots("PCGVGMod DP.svg", PCGVGMod)
-```
-
-generalized
-
-```{r}
-GGVGMod <- glm(lambda ~ generation_time, GVG)
-diagnostic_plots("GGVGMod DP.svg", GGVGMod)
-
-GGVGMod <- glm(lambda ~ generation_time, CGVG)
-diagnostic_plots("GCGVGMod DP.svg", GCGVGMod)
 ```
 
 ## Spearman's rank correlation coefficient
@@ -250,3 +235,92 @@ summary(ANOVALambda)
 -   
 
 # open tree of life
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ComSingle <- ComSubFlag[which(
+  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
+
+temp <- as_data_frame(ComSingle)
+
+ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
+
+ComSingle$ott_id <- ResNames$ott_id
+ComSingle <- ComSingle[-which(is.na(ComSingle$ott_id)),]
+
+temp2 <- as_data_frame(ComSingle)
+
+ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
+
+ComSingle$OTL_unique_name <- ResNames$unique_name
+temp3 <- as_data_frame(ComSingle)
+ComSingle <- as_data_frame(ComSingle)
+row.names(ComSingle) <- ResNames$unique_name
+
+temp4 <- as_data_frame(ComSingle)
+
+```
+
+```{r}
+
+#This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
+
+tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+
+#Let's clean up the names in the tree, so we can compare them with the names in our object
+tree$tip.label <- gsub("_", " ", tree$tip.label)
+
+ComSingle <- ComSingle  %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
+  mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
+  drop_na(lambda, generation_time)
+
+#Now we need to "prune" the tree, which means to cut out the branches that are not present in our data:
+PrunedTree <- drop.tip(tree, setdiff(tree$tip.label, ComSingle$OTL_unique_name))
+
+#The resulting tree has 34 tips, meaning 34 speci
+
+#So naturally it seems like we are missing some from our object, which are not present in the tree.
+
+ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
+row.names(ComSingle) <- ComSingle$OTL_unique_name
+#Checking that the order is the same between the object and the tree
+
+# Let us now plot the values of population growth rate at the tips of the phylogeny, and reconstruct the ancestral state of the originating lineange
+log_lambdas <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
+# create "contMap" object, which allows for the reconstruction of likely ancestral traits
+
+
+
+Aves_contMap_lambda <- contMap(PrunedTree, log_lambdas,plot=FALSE,res=1000, method="anc.ML")
+Aves_contMap_lambda <- setMap(Aves_contMap_lambda, c("white","#FFFFB2","#FECC5C","#FD8D3C","#E31A1C"))
+plot(Aves_contMap_lambda, fsize=c(0.7,0.8), leg.txt="log(population growth rate)")
+par(mar=c(5.1,4.1,4.1,2.1)) ## reset margins to default
+
+#Let's do the same thing for generation time
+log_gen_T <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
+
+Aves_contMap_gen_T <- contMap(PrunedTree, log_gen_T,plot=FALSE,res=200, method="anc.ML")
+Aves_contMap_gent_T <- setMap(Aves_contMap_gen_T, c("white","light blue","blue","violet","purple"))
+plot(Aves_contMap_gent_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+```
+
+## population performance
+
+using code from [@exercise]
+
+```{r}
+## creating new column
+PopPerf <- 
+  as_data_frame(ComSingle$lambda) %>% 
+  mutate(category = factor(
+    case_when(value < 1  ~ "Decrease",
+              value > 1  ~ "Increase")
+  ))
+
+row.names(PopPerf) <- row.names(ComSingle)
+PopPerf <- as.factor(setNames(PopPerf$category,rownames(PopPerf)))
+
+PerfTree <- dotTree(PrunedTree, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", fsize=0.3)
+
+
+```
