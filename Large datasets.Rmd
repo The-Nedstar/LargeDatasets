@@ -237,8 +237,8 @@ summary(ANOVALambda)
 # open tree of life
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-ComSingle <- ComSubFlag[which(
-  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
+ComSingle <- ComIUCN[which(
+  duplicated(ComIUCN$SpeciesAccepted)==FALSE),]
 
 temp <- as_data_frame(ComSingle)
 
@@ -318,9 +318,11 @@ PopPerf <-
   ))
 
 row.names(PopPerf) <- row.names(ComSingle)
-PopPerf <- as.factor(setNames(PopPerf$category,rownames(PopPerf)))
+PopPerf <- as.factor(setNames(PopPerf$category,row.names(PopPerf)))
 
-PerfTree <- dotTree(PrunedTree, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", fsize=0.3)
+IUCNstatus <- as.factor(setNames(ComSingle$IUCNstatus, row.names(ComSingle)))
 
+PerfTree <- dotTree(PrunedTree, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", fsize=0.6)
 
+PerfTree <- tiplabels(text=as.character(IUCNstatus), adj=c(0.5, 0), frame="none", cex=0.6, col="black",)
 ```
