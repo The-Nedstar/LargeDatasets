@@ -30,7 +30,43 @@ source(here("Functions.R"))
 
 # introduction
 
+-   analsysis of biological patterns in the aves class
+
+    -   change the name of the class to try another class
+
+    -   taxanomic subset
+
+-   using various online tools
+
+    -   Compadre for demographjic data
+
+    -   RedList for endangement status
+
+    -   open tree of life for phylogenetic data
+
+-   investigating growth rate and generation time
+
+    -   their relation with status and
+
+    -   how this is all phylogenetically linked
+
 # Compadre
+
+-   online database of demographic data
+
+    -   their species identification and taxonomy
+
+    -   geographic data
+
+    -   data bout their life histories
+
+    -   collected from global archived studies
+
+-   matrix population models
+
+-   useful for ecologogists, evolutionary biologists and conservationists
+
+-   hosted at max plank
 
 ## Acessing Data
 
@@ -50,7 +86,7 @@ ComSubFlag <- subset(ComFlag,
 
 ## Data
 
-### Histograms
+### Histograms (Q1)
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
@@ -80,7 +116,7 @@ histogram(GTvL, GTvL$generation_time,
 
 ![](Figures/GTHist.svg)
 
-## relationship
+## relationship (Q2)
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 scatterplot(GTvL, GTvL$generation_time, 
@@ -125,7 +161,7 @@ PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_t
 diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
 ```
 
-![](Figures/Diagnostic plots.png)
+![](Figures/Diagnostic%20plots.png)
 
 ## Spearman's rank correlation coefficient
 
@@ -169,7 +205,17 @@ ComSingle <- ComSubFlag[which(
 
 # IUCN RedList
 
-## Acessing data
+-   international union for conservation of nature
+
+    -   big collective of organisations
+
+    -   all about helping people to help conserve
+
+-   classifies the status of them in terms of their conservation
+
+-   helps them to be treated accordingly
+
+## Acessing data (Q3)
 
 -   due to issues with data having to load from computer
 
@@ -233,7 +279,21 @@ summary(ANOVALambda)
 
 ![](Figures/LHist.svg)
 
-# open tree of life
+# open tree of life (Q4)
+
+-   collaborative project to create a dynamic phylogeny
+
+    -   comprehensive tree of life
+
+    -   everything
+
+    -   openly accessible
+
+    -   single one
+
+-   accessible through api interface
+
+-   
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 ComSingle <- ComIUCN[which(
@@ -321,7 +381,7 @@ dev.off()
 
 ![](Figures/ContMapGT.svg)
 
-## population performance
+## population performance (Q5)
 
 using code from [@exercise]
 
