@@ -65,33 +65,24 @@ GVG <- as_data_frame(ComSubFlag) %>%
   drop_na()
 
 #Examine the distribution of population growth rates:
-GrowthHist <- histogram(GVG, GVG$lambda,
-                        "Population Growth Rate(λ)", 
-                        paste("Histogram of Growth Rate Within the ", ClassName)
-                        , 0.2, TRUE)
+histogram(GVG, GVG$lambda,
+          "Population Growth Rate(λ)", 
+          paste("Histogram of Growth Rate Within the ", ClassName), 0.2, TRUE, 
+          "LHist.svg")
 
-GenHist <- histogram(GVG, GVG$generation_time,
-                        "Generation Time (years)", 
-                        paste("Histogram of Generation Time Within the ", ClassName)
-                        , 1, FALSE)
-
-
-
-GrowthHist
-GenHist
+histogram(GVG, GVG$generation_time,
+          "Generation Time (years)", 
+          paste("Histogram of Generation Time Within the ", ClassName), 1, FALSE, 
+          "GTHist.svg")
 ```
 
 ## relationship
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-GenVGrowth <- scatterplot(GVG, GVG$generation_time, 
-                          "Generation Time (years)", 
-                          GVG$lambda,
-                          "Growth Rate (λ)", 
-                          paste("Generation time Vs Growth Rate in the ", ClassName)
-                          , FALSE)
-
-GenVGrowth
+scatterplot(GVG, GVG$generation_time, 
+            "Generation Time (years)", 
+            GVG$lambda, "Growth Rate (λ)", 
+            paste("Generation time Vs Growth Rate in the ", ClassName), FALSE, "GTvL.svg")
 ```
 
 ### Linear model
@@ -153,13 +144,10 @@ cor.test(GVG$lambda, GVG$generation_time, method = "spearman")
 ### Plotting
 
 ```{r}
-GenVGrowth2 <- scatterplot(GVG, GVG$generation_time, 
-                          "Generation Time (years)", 
-                          GVG$lambda,
-                          "Growth Rate (λ)", 
-                          paste("Generation time Vs Growth Rate in the", ClassName)
-                          , TRUE)
-GenVGrowth2
+scatterplot(GVG, GVG$generation_time,
+            "Generation Time (years)", 
+            GVG$lambda, "Growth Rate (λ)", 
+            paste("Generation time Vs Growth Rate in the", ClassName), TRUE, "GtvLc.svg")
 ```
 
 ## seperating duplicates?
@@ -215,8 +203,8 @@ generation time
 
 ```{r}
 
-IUCNVGT <- boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$generation_time, "Generation Time (years)", "")
-IUCNVGT
+boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
+
 
 ANOVAGT <- aov(generation_time ~ IUCNstatus, data = IUCNVGVG)
 summary(ANOVAGT)
@@ -225,8 +213,7 @@ summary(ANOVAGT)
 Growth Rate
 
 ```{r}
-IUCNVL <- boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$lambda, "Growth Rate (λ)", "")
-IUCNVL
+boxplot(IUCNVGVG, IUCNVGVG$IUCNstatus, "IUCN status", IUCNVGVG$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
 
 ANOVALambda <- aov(lambda ~ IUCNstatus, data = IUCNVGVG)
 summary(ANOVALambda)
@@ -240,24 +227,17 @@ summary(ANOVALambda)
 ComSingle <- ComIUCN[which(
   duplicated(ComIUCN$SpeciesAccepted)==FALSE),]
 
-temp <- as_data_frame(ComSingle)
-
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
 
 ComSingle$ott_id <- ResNames$ott_id
 ComSingle <- ComSingle[-which(is.na(ComSingle$ott_id)),]
 
-temp2 <- as_data_frame(ComSingle)
-
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
 
 ComSingle$OTL_unique_name <- ResNames$unique_name
-temp3 <- as_data_frame(ComSingle)
+
 ComSingle <- as_data_frame(ComSingle)
 row.names(ComSingle) <- ResNames$unique_name
-
-temp4 <- as_data_frame(ComSingle)
-
 ```
 
 ```{r}
@@ -293,15 +273,23 @@ log_lambdas <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
 
 Aves_contMap_lambda <- contMap(PrunedTree, log_lambdas,plot=FALSE,res=1000, method="anc.ML")
 Aves_contMap_lambda <- setMap(Aves_contMap_lambda, c("white","#FFFFB2","#FECC5C","#FD8D3C","#E31A1C"))
+
+svglite(here("Figures", "ContMapLambda.svg"), 
+        width = 8, height = 8, scaling = 1.2)
 plot(Aves_contMap_lambda, fsize=c(0.7,0.8), leg.txt="log(population growth rate)")
 par(mar=c(5.1,4.1,4.1,2.1)) ## reset margins to default
+dev.off()
 
 #Let's do the same thing for generation time
 log_gen_T <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
 
 Aves_contMap_gen_T <- contMap(PrunedTree, log_gen_T,plot=FALSE,res=200, method="anc.ML")
 Aves_contMap_gent_T <- setMap(Aves_contMap_gen_T, c("white","light blue","blue","violet","purple"))
-plot(Aves_contMap_gent_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+
+svglite(here("Figures", "ContMapGT.svg"), 
+        width = 8, height = 8, scaling = 1.2)
+plot(Aves_contMap_gen_T, fsize=c(0.7,0.8), leg.txt="log(generation time) (years)")
+dev.off()
 ```
 
 ## population performance
@@ -340,12 +328,11 @@ PrunedTree$tip.label <- IUCNstatus$TipName
 
 svglite(here("Figures", "PerfTree.svg"), width = 8,
           height = 8,
-          scaling = 1)
+          scaling = 1.1)
 dotTree(PrunedTree, PopPerf, 
                    colors = setNames(
                      c("#EA0000", "#1E88E5"),
                      c("Decrease","Increase"))
                    , ftype="i", )
-legen
 dev.off()
 ```

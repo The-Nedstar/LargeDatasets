@@ -4,7 +4,7 @@
 ###########################################
 
 ## creation of a histogram
-histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line){
+histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line, File){
   temp <- ggplot(Data, aes(x = Xaxis)) +
     geom_histogram(aes(fill = as.factor(floor(..x.. / BW) %% 2)),
                    binwidth = BW, boundary = 1, 
@@ -23,11 +23,15 @@ histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line){
     xlab(Xtitle) +
     ylab("Frequency") +
     ggtitle(Title)
-  return(temp)
+  svglite(here("Figures", File), width = 10,
+          height = 6,
+          scaling = 1.1)
+  print(temp)
+  dev.off()
 }
 
 ## create a scatterplot
-scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line){
+scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
   temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis)) +
     geom_point(colour = "darkblue")+
     (if (Line == TRUE) {
@@ -42,7 +46,11 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  return(temp)
+  svglite(here("Figures", File), width = 10,
+          height = 6,
+          scaling = 1.1)
+  print(temp)
+  dev.off()
 }
 
 ### Create Diagnostic plots
@@ -56,7 +64,7 @@ diagnostic_plots <- function(File, Model) {
 }
 
 ## create a boxplot
-boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title){
+boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, File){
   temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis, fill = Xaxis)) +
     geom_boxplot() +
     geom_beeswarm(alpha = 0.6, size = 0.75, corral.width = 0.5) +
@@ -70,5 +78,9 @@ boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  return(temp)
+  svglite(here("Figures", File), width = 10,
+          height = 6,
+          scaling = 1.1)
+  print(temp)
+  dev.off()
 }
