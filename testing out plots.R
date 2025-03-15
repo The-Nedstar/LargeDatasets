@@ -1,3 +1,19 @@
+PopPerf <- 
+  as_data_frame(ComSingle$lambda) %>% 
+  mutate(category = factor(
+    case_when(value < 1  ~ "Decrease",
+              value > 1  ~ "Increase")
+  ))
+
+
+
+row.names(PopPerf) <- row.names(ComSingle)
+PopPerf <- as.factor(setNames(PopPerf$category,row.names(PopPerf)))
+
+IUCNstatus <- as.factor(setNames(ComSingle$IUCNstatus, row.names(ComSingle)))
+TreeNoLabels <- PrunedTree
+TreeNoLabels$tip.label <- rep("", length(PrunedTree$tip.label))
+
 # Define the dot colors based on PopPerf (assumed to be a character vector with "Decrease" or "Increase")
 dotColors <- setNames(c("#EA0000", "#1E88E5"), c("Decrease", "Increase"))
 tipDotColors <- dotColors[PopPerf]  # This maps each tip to its corresponding color

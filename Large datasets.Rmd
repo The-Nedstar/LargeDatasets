@@ -317,26 +317,35 @@ PopPerf <-
               value > 1  ~ "Increase")
   ))
 
+IUCNstatus <- as_data_frame(ComSingle$IUCNstatus) %>% 
+  mutate(IUCNstatus = case_when(
+    value == "Endangered" ~ "EN",
+    value == "Vulnerable" ~ "VU",
+    value == "Near Threatened" ~ "NT",
+    value == "Least Concern" ~ "LC",
+    value == "Not Assessed" ~ "NA"))
 
+IUCNstatus$name <- PrunedTree$tip.label
 
-row.names(PopPerf) <- row.names(ComSingle)
-PopPerf <- as.factor(setNames(PopPerf$category,row.names(PopPerf)))
+IUCNstatus$Name <- PrunedTree$tip.label
 
-IUCNstatus <- as.factor(setNames(ComSingle$IUCNstatus, row.names(ComSingle)))
-TreeNoLabels <- PrunedTree
-TreeNoLabels$tip.label <- rep("", length(PrunedTree$tip.label))
+IUCNstatus$TipName <- paste(IUCNstatus$IUCNstatus, IUCNstatus$Name, 
+                            sep = "   ")
+
+row.names(PopPerf) <- IUCNstatus$TipName
+PopPerf <- as.factor(setNames(PopPerf$category,
+            IUCNstatus$TipName))
+
+PrunedTree$tip.label <- IUCNstatus$TipName
 
 svglite(here("Figures", "PerfTree.svg"), width = 8,
           height = 8,
-          scaling = 1.3)
-dotTree(TreeNoLabels, PopPerf, colors=setNames(c("#EA0000", "#1E88E5"), c("Decrease","Increase")), ftype="i", xlim=c(0, 1.5 * max(nodeHeights(TreeNoLables))))
-
-tiplabels(text=as.character(IUCNstatus), adj=c(-1, 0.2), frame="none", cex=0.6, col="black")
-tiplabels(text = PrunedTree$tip.label,
-          offset = 0,         
-          adj = c(0, 0.5),
-          frame = "none",
-          cex = 0.6,
-          col = "black")
+          scaling = 1)
+dotTree(PrunedTree, PopPerf, 
+                   colors = setNames(
+                     c("#EA0000", "#1E88E5"),
+                     c("Decrease","Increase"))
+                   , ftype="i", )
+legen
 dev.off()
 ```
