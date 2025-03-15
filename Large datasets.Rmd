@@ -336,11 +336,11 @@ PopPerf <-
 
 IUCNstatus <- as_data_frame(ComSingle$IUCNstatus) %>% 
   mutate(IUCNstatus = case_when(
-    value == "Endangered" ~ "EN",
-    value == "Vulnerable" ~ "VU",
-    value == "Near Threatened" ~ "NT",
-    value == "Least Concern" ~ "LC",
-    value == "Not Assessed" ~ "NA"))
+    value == "Endangered" ~ " EN",
+    value == "Vulnerable" ~ " VU",
+    value == "Near Threatened" ~ " NT",
+    value == "Least Concern" ~ " LC",
+    value == "Not Assessed" ~ " NA"))
 
 IUCNstatus$name <- PrunedTree$tip.label
 
