@@ -39,7 +39,9 @@ In this document we run an analysis of biological patterns within the Aves class
 
 From this data...
 
-This Document also functions as a template for this analysis in any species, by changing the variable "class" to the name of the class (as used in the compadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly, and the rest of the code is created so you can easily change the values being analysed. On [@the] anonomised github repository you can find all of the files used and a blank template, "Large datasets template.rmd", containing the code without specific analysis and write up of the Aves class for usage in your own analysis.
+This Document also functions as a template for this analysis in any species, by changing the variable "class" to the name of the class (as used in the compadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly, and the rest of the code is created so you can easily change the values being analysed. On the anonomised github repository you can find all of the files used and a blank template, "Large datasets template.rmd", containing the code without specific analysis and write up of the Aves class for usage in your own analysis [@the2025].
+
+GitHub Link: <https://github.com/The-Nedstar/LargeDatasets>
 
 ## Enter your species of interest here:
 
@@ -212,38 +214,39 @@ scatterplot(GTvL, GTvL$generation_time,
 
 # IUCN RedList
 
-The International Union for the Conservation of Nature (IUCN) is a collection of organisations that work together to aid in conservation efforts. the RedList is a list of many species categorizing their conservation status depending on their
-
--   international union for conservation of nature
-
-    -   big collective of organisations
-
-    -   all about helping people to help conserve
-
--   classifies the status of them in terms of their conservation
-
--   helps them to be treated accordingly
+The International Union for the Conservation of Nature (IUCN) is a collection of organisations that work together to aid in conservation efforts. the RedList is a database containing many species and describing their conservation status. Using this database, research and conservation efforts can be effectively distributed between the species that most need it.
 
 ## Acessing data (Q3)
 
--   due to issues with data having to load from computer
+Due to issues with accessing the online database, instead we have imported the data relevant to the compadre database from a csv (also accessible on [ github repository [@the2025]).
 
 ```{r}
-IUCNData<- read.csv(here("IUCN_comadre_compadre.csv"))
-
+## loading the IUCNRedList data
+IUCNData <- read.csv(here("IUCN_comadre_compadre.csv"))
+# combining with our Compadre dataset
 ComIUCN <- ComSubFlag %>%
   left_join(x = ., y = IUCNData, by = "SpeciesAccepted") %>% 
-  mutate(IUCNstatus = case_when(
+  mutate(IUCNstatus = replace_na(IUCNstatus, "NE"))
+# producing a new 
+ComIUCN <- ComIUCN %>% 
+  mutate(IUCNstatLong = case_when(
     IUCNstatus == "EN" ~ "Endangered",
     IUCNstatus == "VU" ~ "Vulnerable",
     IUCNstatus == "NT" ~ "Near Threatened",
     IUCNstatus == "LC" ~ "Least Concern",
-    is.na(IUCNstatus) == TRUE ~ "Not Assessed"),
-    IUCNstatus = factor(IUCNstatus, 
-                        levels = c("Endangered","Vulnerable",
+    IUCNstatus == "DD" ~ "Data Deficient",
+    IUCNstatus == "CR" ~ "Critically Endangered",
+    IUCNstatus == "EW" ~ "Extinct in the wild",
+    IUCNstatus == "EX" ~ "Extinct",
+    IUCNstatus == "NE" ~ "Not Evaluated"),
+    IUCNstatLong = factor(IUCNstatLong, 
+                        levels = c("Extinct in the wild",
+                                   "Extinct","Endangered",
+                                   "Vulnerable",
                                    "Near Threatened",
                                    "Least Concern",
-                                   "Not Assessed")))
+                                   "Data Deficient",
+                                   "Not Evaluated")))
 
 ComIUCN <- as_data_frame(ComIUCN)
 ```
@@ -252,7 +255,7 @@ ComIUCN <- as_data_frame(ComIUCN)
 
 ```{r}
 IUCNVGTvL<- as_data_frame(ComIUCN) %>%
-  select(lambda, generation_time, IUCNstatus) %>% 
+  select(lambda, generation_time, IUCNstatLong) %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
   drop_na()
@@ -261,10 +264,10 @@ IUCNVGTvL<- as_data_frame(ComIUCN) %>%
 generation time
 
 ```{r}
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatus, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
 
 
-ANOVAGT <- aov(generation_time ~ IUCNstatus, data = IUCNVGTvL)
+ANOVAGT <- aov(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVAGT)
 ```
 
@@ -273,9 +276,9 @@ summary(ANOVAGT)
 Growth Rate
 
 ```{r}
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatus, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
 
-ANOVALambda <- aov(lambda ~ IUCNstatus, data = IUCNVGTvL)
+ANOVALambda <- aov(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVALambda)
 ```
 
@@ -396,20 +399,12 @@ PopPerf <-
               value > 1  ~ "Increase")
   ))
 
-IUCNstatus <- as_data_frame(ComSingle$IUCNstatus) %>% 
-  mutate(IUCNstatus = case_when(
-    value == "Endangered" ~ " EN",
-    value == "Vulnerable" ~ " VU",
-    value == "Near Threatened" ~ " NT",
-    value == "Least Concern" ~ " LC",
-    value == "Not Assessed" ~ " NA"))
-
-IUCNstatus$name <- PrunedTree$tip.label
+IUCNstatus <- as_data_frame(ComSingle$IUCNstatus)
 
 IUCNstatus$Name <- PrunedTree$tip.label
 
-IUCNstatus$TipName <- paste(IUCNstatus$IUCNstatus, IUCNstatus$Name, 
-                            sep = "   ")
+IUCNstatus$TipName <- paste(IUCNstatus$value, 
+                            IUCNstatus$Name, sep = " ")
 
 row.names(PopPerf) <- IUCNstatus$TipName
 PopPerf <- as.factor(setNames(PopPerf$category,
@@ -419,7 +414,7 @@ PrunedTree$tip.label <- IUCNstatus$TipName
 
 svglite(here("Figures", "PerfTree.svg"), width = 8,
           height = 8,
-          scaling = 1.1)
+          scaling = 1)
 dotTree(PrunedTree, PopPerf, 
                    colors = setNames(
                      c("#EA0000", "#1E88E5"),
