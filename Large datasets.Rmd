@@ -30,7 +30,7 @@ library(svglite)
 library(ggbeeswarm)
 
 # loading self made functions
-source(here("Functions.R"))
+source(here("Data", "Functions.R"))
 ```
 
 # Abstract
@@ -186,7 +186,7 @@ diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
 
 ![Figure 4: diagnostic plots for all attempted models](Figures/Diagnostic%20plots.png)
 
-It appears that the data violates the assumptions of a generalized linear model under all attempted variations. For the all models, both with and without the outlier removed the residuals vs fitted and scale vs location plots both show deviations from a flat horizontal relationship, indicating that the data hetereoscedastic.\
+It appears that the data violates the assumptions of a generalized linear model under all attempted variations. For the all models, both with and without the outlier removed the residuals vs fitted and scale vs location plots both show deviations from a flat horizontal relationship, indicating that the data hetereoscedastic and not linear.\
 The polynomial has the least violation of these assumptions, however the outliers have a greater impact on the data, even when the most severe outlier is removed.
 
 ### Spearman's rank correlation coefficient
@@ -198,19 +198,7 @@ cat("--- Outcome of the Spearman's rank correlation test ---\n")
 cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 ```
 
-The results of this test show that there is sufficient data to suggest that there is enough data to reject our null hypotheses. There appears to be a relatively weak positive relationship between the data. Considering the
-
-### **Plotting**
-
-```{r}
-scatterplot(GTvL, GTvL$generation_time,
-            "Generation Time (years)", 
-            GTvL$lambda, "Growth Rate (λ)", 
-            paste("Generation time Vs Growth Rate in the",
-                  ClassName), FALSE, "GtvLc.svg")
-```
-
-![Figure 5:](Figures/GtvLc.svg)
+The results of this test show that there is sufficient data to suggest that there is enough data to reject our null hypotheses. There appears to be a relatively weak positive relationship between the data. Considering the diagnostic plots from earlier this relationship is likely non-linear.
 
 # IUCN RedList
 
@@ -220,14 +208,14 @@ The International Union for the Conservation of Nature (IUCN) is a collection of
 
 Due to issues with accessing the online database, instead we have imported the data relevant to the compadre database from a csv (also accessible on [ github repository [@the2025]).
 
-```{r}
+```{r combining IUCN and Compadre datasets}
 ## loading the IUCNRedList data
-IUCNData <- read.csv(here("IUCN_comadre_compadre.csv"))
+IUCNData <- read.csv(here("Data", "IUCN_comadre_compadre.csv"))
 # combining with our Compadre dataset
 ComIUCN <- ComSubFlag %>%
   left_join(x = ., y = IUCNData, by = "SpeciesAccepted") %>% 
   mutate(IUCNstatus = replace_na(IUCNstatus, "NE"))
-# producing a new 
+# producing a new column converting the two letter status codes into full words
 ComIUCN <- ComIUCN %>% 
   mutate(IUCNstatLong = case_when(
     IUCNstatus == "EN" ~ "Endangered",
@@ -247,44 +235,51 @@ ComIUCN <- ComIUCN %>%
                                    "Least Concern",
                                    "Data Deficient",
                                    "Not Evaluated")))
-
+## converting into a data frame
 ComIUCN <- as_data_frame(ComIUCN)
 ```
 
 ## analysis
 
-```{r}
+```{r Producing a dataframe with only the necessary values and NAs/ infinite values removed}
 IUCNVGTvL<- as_data_frame(ComIUCN) %>%
   select(lambda, generation_time, IUCNstatLong) %>% 
-  mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
-  mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
+  mutate(across(c(lambda, generation_time), 
+                ~ na_if(., Inf))) %>% 
+  mutate(across(c(lambda, generation_time), 
+                ~ na_if(., -Inf))) %>%
   drop_na()
 ```
 
 generation time
 
-```{r}
+```{r Comparing status to generation time}
+## using a self made function to produce a boxplot comparing the varaibles
 boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
 
-
+## running an ANOVA analysis
 ANOVAGT <- aov(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVAGT)
 ```
 
-![](Figures/IUCNvGT.svg)
+![Figure 5: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.svg)
 
 Growth Rate
 
-```{r}
+```{r comparing status to population growth rate}
+## using a self made function to produce a boxplot comparing the varaibles
 boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
 
+## running an ANOVA analysis
 ANOVALambda <- aov(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVALambda)
 ```
 
-![](Figures/IUCNvL.svg)
+![Figure 6: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.svg)
 
 # open tree of life (Q4)
+
+The open tree of life is a collaborative effort to create a dynamic phylogeny of the entire tree of life. It is openly accessible through an API, but in this case it is being accessed through a
 
 -   collaborative project to create a dynamic phylogeny
 
@@ -321,7 +316,7 @@ row.names(ComSingle) <- ResNames$unique_name
 
 #This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
 
-Tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+Tree <- read.tree(here("Data", "COMPADRE-COMADRE_Phylo_June_16_2019.tre")
 
 #Let's clean up the names in the tree, so we can compare them with the names in our object
 Tree$tip.label <- gsub("_", " ", Tree$tip.label)
