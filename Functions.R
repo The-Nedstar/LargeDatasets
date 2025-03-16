@@ -35,7 +35,7 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
   temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis)) +
     geom_point(colour = "darkblue")+
     (if (Line == TRUE) {
-      geom_smooth(method = "lm", se = FALSE, linetype = "solid", colour = "darkred")
+      geom_smooth(method = "lm", se = TRUE, linetype = "solid", colour = "darkred")
     }) +
     theme_bw()+
     theme(

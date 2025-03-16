@@ -184,29 +184,19 @@ diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
 
 ![Figure 4: diagnostic plots for all attempted models](Figures/Diagnostic%20plots.png)
 
-It appears that the data violates the assumptions of a generalized linear model under all attempted variations.
+It appears that the data violates the assumptions of a generalized linear model under all attempted variations. For the all models, both with and without the outlier removed the residuals vs fitted and scale vs location plots both show deviations from a flat horizontal relationship, indicating that the data hetereoscedastic.\
+The polynomial has the least violation of these assumptions, however the outliers have a greater impact on the data, even when the most severe outlier is removed.
 
 ### Spearman's rank correlation coefficient
 
--   other things very much not working
-
--   so trying a non parametric method
-
--   meets the assumptions
-
-    -   monotonic
-
-    -   outlier doesn't matter as robust
-
-    -   indepedent observations
+Due to the data violating the assumptions of a linear model approach, we decided to move forward with a non parametric approach using a Spearman's rank correlation coefficient. Our data does match the assuptions as it is monotonic with independent observations and as a ranked method it is robust to outliers.
 
 ```{r Spearmans rank correlation test}
+cat("--- Outcome of the Spearman's rank correlation test ---\n")
 cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 ```
 
--   very significant
-
--   moderate positive correlation, but doesn't describe the data too well
+The results of this test show that there is sufficient data to suggest that there is enough data to reject our null hypotheses. There appears to be a relatively weak positive relationship between the data. Considering the
 
 ### **Plotting**
 
@@ -214,12 +204,15 @@ cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 scatterplot(GTvL, GTvL$generation_time,
             "Generation Time (years)", 
             GTvL$lambda, "Growth Rate (λ)", 
-            paste("Generation time Vs Growth Rate in the", ClassName), TRUE, "GtvLc.svg")
+            paste("Generation time Vs Growth Rate in the",
+                  ClassName), FALSE, "GtvLc.svg")
 ```
 
-![](Figures/GtvLc.svg)
+![Figure 5:](Figures/GtvLc.svg)
 
 # IUCN RedList
+
+The International Union for the Conservation of Nature (IUCN) is a collection of organisations that work together to aid in conservation efforts. the RedList is a list of many species categorizing their conservation status depending on their
 
 -   international union for conservation of nature
 
@@ -248,17 +241,11 @@ ComIUCN <- ComSubFlag %>%
     is.na(IUCNstatus) == TRUE ~ "Not Assessed"),
     IUCNstatus = factor(IUCNstatus, 
                         levels = c("Endangered","Vulnerable",
-                                   "Near Threatened","Least Concern",
+                                   "Near Threatened",
+                                   "Least Concern",
                                    "Not Assessed")))
 
 ComIUCN <- as_data_frame(ComIUCN)
-
-ComIUCN$IUCNcolour <- NA
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Endangered")] <- "Orange" 
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Vulnerable")] <- "Yellow"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Near Threatened")] <- "Dark green"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Least Concern")] <- "Green"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Not Assessed")] <- "Blue"
 ```
 
 ## analysis
@@ -281,7 +268,7 @@ ANOVAGT <- aov(generation_time ~ IUCNstatus, data = IUCNVGTvL)
 summary(ANOVAGT)
 ```
 
-![](Figures/GTHist.svg)
+![](Figures/IUCNvGT.svg)
 
 Growth Rate
 
@@ -292,7 +279,7 @@ ANOVALambda <- aov(lambda ~ IUCNstatus, data = IUCNVGTvL)
 summary(ANOVALambda)
 ```
 
-![](Figures/LHist.svg)
+![](Figures/IUCNvL.svg)
 
 # open tree of life (Q4)
 
