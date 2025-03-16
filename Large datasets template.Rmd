@@ -39,7 +39,7 @@ In this document we run an analysis of biological patterns within the Aves class
 
 From this data...
 
-This Document also functions as a template for this analysis in any species, by changing the variable "class" to the name of the class (as used in the compadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly, and the rest of the code is created so you can easily change the values being analysed. On [@the] anonomised github repository you can find all of the files used and a blank template, "Large datasets template.rmd", containing the code without specific analysis and write up of the Aves class for usage in your own analysis.
+This Document also functions as a template for this analysis in any species, by changing the variable "class" to the name of the class (as used in the compadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly. On [@the] anonomised github repository you can find all of the files used and a blank template containing the code without the specific analysis and write up for usage in your own analysis.
 
 ## Enter your species of interest here:
 
