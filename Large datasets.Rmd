@@ -242,7 +242,6 @@ ComIUCN <- as_data_frame(ComIUCN)
 ## analysis
 
 ```{r Producing a dataframe with only the necessary values and NAs/ infinite values removed}
-
 IUCNVGTvL <- as_data_frame(ComIUCN) %>%
   select(lambda, generation_time, IUCNstatLong) %>% 
   mutate(across(c(lambda, generation_time), 
@@ -282,7 +281,7 @@ summary(ANOVALambda)
 
 The open tree of life is a collaborative effort to create a dynamic phylogeny of the entire tree of life. It is openly accessible through an API, but in this case it is being accessed through a .tre file of all of the data relevant to the Compadre dataset from the repository [@jones2024] (also accessible on the github repository, under the folder "Data" [@the2025]).
 
-```{r eliminating species that aren't in the open tree of life}
+```{r eliminating species that arent in the open tree of life}
 ## Creating a new dataframe with each species only present once
 ComSingle <- ComIUCN[which(
   duplicated(ComIUCN$SpeciesAccepted) == FALSE),]
@@ -302,7 +301,7 @@ ComSingle$OTL_unique_name <- ResNames$unique_name
 
 ```{r Creating our phylogenetic tree}
 ## Loading in the tree data
-Tree <- read.tree(here("Data", "COMPADRE-COMADRE_Phylo_June_16_2019.tre")
+Tree <- read.tree(here("Data", "COMPADRE-COMADRE_Phylo_June_16_2019.tre"))
 
 ## remove NA and infinite values from our dataframe          
 ComSingle <- ComSingle  %>% 
@@ -321,11 +320,13 @@ ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
 row.names(ComSingle) <- ComSingle$OTL_unique_name
 
 ## Plotting our Pruned tree
-svglite(here("Figures", "PrunedTree.svg"), width = 8, height = 8, scaling = 1.2) 
+svglite(here("Figures", "PrunedTree.svg"), width = 8, height = 8, scaling = 1) 
 plot(PrunedTree, fsize = c(0.7,0.8)) 
 par(mar=c(5.1,4.1,4.1,2.1))
 dev.off()
 ```
+
+![](Figures/PrunedTree.svg)
 
 growth rate
 
@@ -397,7 +398,7 @@ PopPerf <- as.factor(setNames(PopPerf$category,
 ## plotting our new tree
 svglite(here("Figures", "PerfTree.svg"), width = 8,
           height = 8,
-          scaling = 1)
+          scaling = 0.9)
 # plotting a tree with dots coloured depending on whether the growth rate is greater than or less than 1
 dotTree(PrunedTree, PopPerf, colors = setNames(
                      c("#EA0000", "#1E88E5"),
