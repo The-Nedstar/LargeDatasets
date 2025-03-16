@@ -130,6 +130,6 @@
 <text x='636.15' y='406.67' text-anchor='middle' style='font-size: 9.68px;fill: #4D4D4D; font-family: "Arial";' textLength='10.76px' lengthAdjust='spacingAndGlyphs'>50</text>
 <text x='376.73' y='422.73' text-anchor='middle' style='font-size: 15.40px; font-family: "Arial";' textLength='165.97px' lengthAdjust='spacingAndGlyphs'>Generation Time (years)</text>
 <text transform='translate(17.05,211.74) rotate(-90)' text-anchor='middle' style='font-size: 15.40px; font-family: "Arial";' textLength='72.73px' lengthAdjust='spacingAndGlyphs'>Frequency</text>
-<text x='39.49' y='19.25' style='font-size: 18.48px; font-family: "Arial";' textLength='430.88px' lengthAdjust='spacingAndGlyphs'>Histogram of Generation Time Within the  Aves class</text>
+<text x='39.49' y='19.25' style='font-size: 18.48px; font-family: "Arial";' textLength='425.75px' lengthAdjust='spacingAndGlyphs'>Histogram of Generation Time Within the Aves class</text>
 </g>
 </svg>

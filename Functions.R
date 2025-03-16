@@ -13,7 +13,7 @@ histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line, File){
       geom_vline(xintercept = 1, colour = "red", 
                  size = 1.3, linetype = "21")
     }) +
-    scale_fill_manual(values = c("#707070", "#606060")) +
+    scale_fill_manual(values = c("#707070", "#555555")) +
     theme_bw()+
     theme(
       legend.position = "none",

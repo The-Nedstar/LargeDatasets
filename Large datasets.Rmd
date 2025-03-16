@@ -11,10 +11,10 @@ nocite: |
 ## Initialisation
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r}
 # clearing the environment
 rm(list = ls())
 
@@ -49,23 +49,7 @@ class <- "Aves"
 
 # Compadre
 
-Compadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from.
-
--   online database of demographic data
-
-    -   their species identification and taxonomy
-
-    -   geographic data
-
-    -   data bout their life histories
-
-    -   collected from global archived studies
-
--   matrix population models
-
--   useful for ecologogists, evolutionary biologists and conservationists
-
--   hosted at max plank
+Compadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from. Population parameters are stored in matrix population models (MPMs) all accessible through R studio as well as various other programs. This database is particularly useful for ecologists, evolutionary biologists and conservationists
 
 ## Acessing Data
 
@@ -89,86 +73,120 @@ ComSubFlag <- subset(ComFlag,
                       check_ergodic == TRUE)
 ```
 
-## Data
+## Distribution of growth rate and generation time (Q1)
 
-### Histograms (Q1)
+We first Take a look at the distribution of both growth rate and generation time within our clade using the data collected from Compadre
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r Data wrangling for distribution analysis}
+## extraction of growth rate and generation time from the MPMs
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
                                    popbio::lambda))
-
-ComSubFlag$generation_time <- unlist(lapply(matA(ComSubFlag), 
+ComSubFlag$generation_time <- unlist(lapply(matA(ComSubFlag),
                                    popbio::generation.time))
+
+## removing any observations with infinite or NA values in either variable
 GTvL <- as_data_frame(ComSubFlag) %>%
   select(lambda, generation_time) %>% 
   mutate(across(everything(), ~ na_if(., Inf))) %>% 
   mutate(across(everything(), ~ na_if(., -Inf))) %>%
   drop_na()
-
-#Examine the distribution of population growth rates:
-histogram(GTvL, GTvL$lambda,
-          "Population Growth Rate(λ)", 
-          paste("Histogram of Growth Rate Within the ", ClassName), 0.2, TRUE, 
-          "LHist.svg")
-
-histogram(GTvL, GTvL$generation_time,
-          "Generation Time (years)", 
-          paste("Histogram of Generation Time Within the ", ClassName), 1, FALSE, 
-          "GTHist.svg")
 ```
 
-![](Figures/LHist.svg)
+```{r Histogram of growth rate distribution}
+## using a self made function to save an svg of a histogram
+histogram(GTvL, GTvL$lambda,
+          "Population Growth Rate(λ)", 
+          paste("Histogram of Growth Rate Within the",
+                ClassName), 0.15, TRUE, "LHist.svg")
+## Printing summary statistics for growth rate
+cat("--- Summary statistics for Growth rate ---\n")
+summary(GTvL$lambda)
+```
 
-![](Figures/GTHist.svg)
+![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/LHist.svg)
 
-## relationship (Q2)
+It appears the populationg growth grate is roughly normally distributed around a mean of \~0.9944.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r Histogram of generation time distribution}
+## using a self made function to save an svg of a histogram
+histogram(GTvL, GTvL$generation_time,
+          "Generation Time (years)", 
+          paste("Histogram of Generation Time Within the",
+                ClassName), 1, FALSE, "GTHist.svg")
+## Printing summary statistics for generation time
+cat("--- Summary statistics for generation time ---\n")
+summary(GTvL$generation_time)
+```
+
+![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.svg)
+
+The distribution fo generation time appears to be assymetrically distributed with a right skew.
+
+## Relationship between Growth rate and generation time (Q2)
+
+For the next part of the analysis, we compare growth rate and generation time to eachother and attempt to fit a model to explore potential correlations. We would expect there to be a negative correlation between the variables.
+
+H0: There is no significant relationship between growth rate and generation time
+
+H1: There is a significant relationship between growth rate and generation time
+
+```{r Scatterplot of growth rate compared to generation time}
+## creation of a explorative scatterplot comparing growth rate and generation time using a self made function
 scatterplot(GTvL, GTvL$generation_time, 
             "Generation Time (years)", 
             GTvL$lambda, "Growth Rate (λ)", 
-            paste("Generation time Vs Growth Rate in the ", ClassName), FALSE, "GTvL.svg")
+            paste("Generation time Vs Growth Rate in the",
+                  ClassName), FALSE, "GTvL.svg")
 ```
 
-![](Figures/GTvL.svg)
+![Figure 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.svg)
 
-### Linear model
+From first inspection there is potentially a positive relationship, but it is unlikely to be very substantial.
 
-normal
+### **Linear model**
 
-```{r}
+```{r Running standard linear model}
+## creation of a version of the dataset without the outlier
 CGTvL <- subset(GTvL, generation_time < 50)
 
+## creation of a linear model and testing violations of assumptions using a diagnostic plot
+# with all the data
 GTvLMod <- lm(lambda ~ generation_time, GTvL)
 diagnostic_plots("GTvLMod DP.svg", GTvLMod)
-
+# with the outlier removed
 CGTvLMod <- lm(lambda ~ generation_time, CGTvL)
 diagnostic_plots("CGTvLMod DP.svg", CGTvLMod)
 ```
 
-log transformed
+**Log transformed**
 
-```{r}
+```{r running log transformed linear model}
+## creation of a log transformed linear model and testing violations of assumptions using a diagnostic plot
+# with all data
 LGTvLMod <- lm(log(lambda) ~ log(generation_time), GTvL)
 diagnostic_plots("LGTvLMod DP.svg", LGTvLMod)
-
+# with the outlier removed
 LCGTvLMod <- lm(log(lambda) ~ log(generation_time), CGTvL)
 diagnostic_plots("LCGTvLMod DP.svg", LCGTvLMod)
 ```
 
-polynomial
+**Polynomial**
 
-```{r}
+```{r running a polynomial model}
+## creation of a polynomial model and testing violations of assumptions using a diagnostic plot
+# with all the data
 PGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GTvL)
 diagnostic_plots("PGTvLMod DP.svg", PGTvLMod)
-
+# with the outlier removed
 PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGTvL)
 diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
 ```
 
-![](Figures/Diagnostic%20plots.png)
+![Figure 4: diagnostic plots for all attempted models](Figures/Diagnostic%20plots.png)
 
-## Spearman's rank correlation coefficient
+It appears that the data violates the assumptions of a generalized linear model under all attempted variations.
+
+### Spearman's rank correlation coefficient
 
 -   other things very much not working
 
@@ -182,7 +200,7 @@ diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
 
     -   indepedent observations
 
-```{r}
+```{r Spearmans rank correlation test}
 cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 ```
 
@@ -190,7 +208,7 @@ cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 
 -   moderate positive correlation, but doesn't describe the data too well
 
-### Plotting
+### **Plotting**
 
 ```{r}
 scatterplot(GTvL, GTvL$generation_time,
@@ -200,13 +218,6 @@ scatterplot(GTvL, GTvL$generation_time,
 ```
 
 ![](Figures/GtvLc.svg)
-
-## seperating duplicates?
-
-```{r}
-ComSingle <- ComSubFlag[which(
-  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
-```
 
 # IUCN RedList
 
@@ -263,7 +274,6 @@ IUCNVGTvL<- as_data_frame(ComIUCN) %>%
 generation time
 
 ```{r}
-
 boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatus, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
 
 
