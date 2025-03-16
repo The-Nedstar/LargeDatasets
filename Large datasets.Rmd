@@ -206,7 +206,7 @@ The International Union for the Conservation of Nature (IUCN) is a collection of
 
 ## Acessing data (Q3)
 
-Due to issues with accessing the online database, instead we have imported the data relevant to the compadre database from a csv (also accessible on [ github repository [@the2025]).
+Due to issues with accessing the online database, instead we have imported the data relevant to the compadre database from a csv (also accessible on the github repository, under the folder "Data" [@the2025]).
 
 ```{r combining IUCN and Compadre datasets}
 ## loading the IUCNRedList data
@@ -242,7 +242,8 @@ ComIUCN <- as_data_frame(ComIUCN)
 ## analysis
 
 ```{r Producing a dataframe with only the necessary values and NAs/ infinite values removed}
-IUCNVGTvL<- as_data_frame(ComIUCN) %>%
+
+IUCNVGTvL <- as_data_frame(ComIUCN) %>%
   select(lambda, generation_time, IUCNstatLong) %>% 
   mutate(across(c(lambda, generation_time), 
                 ~ na_if(., Inf))) %>% 
@@ -279,83 +280,69 @@ summary(ANOVALambda)
 
 # open tree of life (Q4)
 
-The open tree of life is a collaborative effort to create a dynamic phylogeny of the entire tree of life. It is openly accessible through an API, but in this case it is being accessed through a
+The open tree of life is a collaborative effort to create a dynamic phylogeny of the entire tree of life. It is openly accessible through an API, but in this case it is being accessed through a .tre file of all of the data relevant to the Compadre dataset from the repository [@jones2024] (also accessible on the github repository, under the folder "Data" [@the2025]).
 
--   collaborative project to create a dynamic phylogeny
-
-    -   comprehensive tree of life
-
-    -   everything
-
-    -   openly accessible
-
-    -   single one
-
--   accessible through api interface
-
--   
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r eliminating species that aren't in the open tree of life}
+## Creating a new dataframe with each species only present once
 ComSingle <- ComIUCN[which(
-  duplicated(ComIUCN$SpeciesAccepted)==FALSE),]
+  duplicated(ComIUCN$SpeciesAccepted) == FALSE),]
 
+## wrangling data using the open tree of life online API
+# Creating a list of names from our dataframe that matches an entry in the open tree of life
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
-
+# adding the open tree of life id to our dataframe
 ComSingle$ott_id <- ResNames$ott_id
+# removing any values where there is no id
 ComSingle <- ComSingle[-which(is.na(ComSingle$ott_id)),]
-
+# updating our list of mached names using only the ones with an id
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
-
+# putting this names into a new column in our dataframe
 ComSingle$OTL_unique_name <- ResNames$unique_name
-
-ComSingle <- as_data_frame(ComSingle)
-row.names(ComSingle) <- ResNames$unique_name
 ```
 
-```{r}
-
-#This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
-
+```{r Creating our phylogenetic tree}
+## Loading in the tree data
 Tree <- read.tree(here("Data", "COMPADRE-COMADRE_Phylo_June_16_2019.tre")
 
-#Let's clean up the names in the tree, so we can compare them with the names in our object
-Tree$tip.label <- gsub("_", " ", Tree$tip.label)
-
+## remove NA and infinite values from our dataframe          
 ComSingle <- ComSingle  %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
   drop_na(lambda, generation_time)
-
-#Now we need to "prune" the tree, which means to cut out the branches that are not present in our data:
+                  
+## Using the Open tree of life to create our own tree
+# Shortening the tip labels
+Tree$tip.label <- gsub("_", " ", Tree$tip.label)
+# Removing species which aren't in our dataframe
 PrunedTree <- drop.tip(Tree, setdiff(Tree$tip.label, ComSingle$OTL_unique_name))
-
-#The resulting tree has 34 tips, meaning 34 speci
-
-#So naturally it seems like we are missing some from our object, which are not present in the tree.
-
+# alterning the order of our dataframe to map the tree
 ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
+# setting the species names as the row names
 row.names(ComSingle) <- ComSingle$OTL_unique_name
-#Checking that the order is the same between the object and the tree
 
-# Let us now plot the values of population growth rate at the tips of the phylogeny, and reconstruct the ancestral state of the originating lineange
-LogL <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
-# create "contMap" object, which allows for the reconstruction of likely ancestral traits
-
+## Plotting our Pruned tree
+svglite(here("Figures", "PrunedTree.svg"), width = 8, height = 8, scaling = 1.2) 
+plot(PrunedTree, fsize = c(0.7,0.8)) 
+par(mar=c(5.1,4.1,4.1,2.1))
+dev.off()
 ```
 
 growth rate
 
 ```{r}
-ContMapL <- contMap(PrunedTree, LogL,plot=FALSE,res=1000, 
+## Creating a list containing the Log of the growth rate attached to the species name
+LogL <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
+
+## creating a phylogenetic tree coloured based on the population growth rate
+ContMapL <- contMap(PrunedTree, LogL,plot=FALSE,res=1000,
                     method="anc.ML") 
 ContMapL <- setMap(ContMapL, c("white","#FFFFB2","#FECC5C",
                                "#FD8D3C","#E31A1C"))
 
+## Plotting the phylogenetic tree
 svglite(here("Figures", "ContMapLambda.svg"), width = 8, height = 8, scaling = 1.2) 
 plot(ContMapL, fsize = c(0.7,0.8), leg.txt = 
        "log(population growth rate)") 
-par(mar=c(5.1,4.1,4.1,2.1))
-## reset margins to default 
 dev.off()
 
 ```
@@ -365,13 +352,16 @@ dev.off()
 Generation time
 
 ```{r}
+## Creating a list containing the Log of the generation time attached to the species name
 LogGT <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
 
+## creating a phylogenetic tree coloured based on the generation time
 ContMapGT <- contMap(PrunedTree, LogGT,plot=FALSE,res=200, 
                      method="anc.ML")
 ContMapGT <- setMap(ContMapGT, c("white","light blue","blue",
                                  "violet","purple"))
 
+## Plotting the phylogenetic tree
 svglite(here("Figures", "ContMapGT.svg"), 
         width = 8, height = 8, scaling = 1.2)
 plot(ContMapGT, fsize=c(0.7,0.8), leg.txt = 
@@ -386,35 +376,33 @@ dev.off()
 using code from [@exercise]
 
 ```{r}
-## creating new column
+## Creating a list of either "Increase" if growth rate is greater than one, or "Decrease" if it is less
 PopPerf <- 
   as_data_frame(ComSingle$lambda) %>% 
   mutate(category = factor(
     case_when(value < 1  ~ "Decrease",
-              value > 1  ~ "Increase")
-  ))
+              value > 1  ~ "Increase")))
 
-IUCNstatus <- as_data_frame(ComSingle$IUCNstatus)
-
-IUCNstatus$Name <- PrunedTree$tip.label
-
-IUCNstatus$TipName <- paste(IUCNstatus$value, 
-                            IUCNstatus$Name, sep = " ")
-
-row.names(PopPerf) <- IUCNstatus$TipName
+## adding the conservation status to the tip labels
+# seperating creating a new column in our dataframe combining the status and the species name into one string
+ComSingle$TipName <- paste(ComSingle$IUCNstatus,
+                           ComSingle$OTL_unique_name, 
+                           sep = " ")
+# replacing the tip labels with these new strings
+PrunedTree$tip.label <- ComSingle$TipName
+# replacing PopPerf with a list of factors as named by our new tip labels
 PopPerf <- as.factor(setNames(PopPerf$category,
-            IUCNstatus$TipName))
+            ComSingle$TipName))
 
-PrunedTree$tip.label <- IUCNstatus$TipName
-
+## plotting our new tree
 svglite(here("Figures", "PerfTree.svg"), width = 8,
           height = 8,
           scaling = 1)
-dotTree(PrunedTree, PopPerf, 
-                   colors = setNames(
+# plotting a tree with dots coloured depending on whether the growth rate is greater than or less than 1
+dotTree(PrunedTree, PopPerf, colors = setNames(
                      c("#EA0000", "#1E88E5"),
-                     c("Decrease","Increase"))
-                   , ftype="i", )
+                     c("Decrease","Increase")),
+        ftype="i", )
 dev.off()
 ```
 
