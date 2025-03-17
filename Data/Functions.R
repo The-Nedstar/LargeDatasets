@@ -23,10 +23,10 @@ histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line, File){
     xlab(Xtitle) +
     ylab("Frequency") +
     ggtitle(Title)
-  ## saving the graph as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.1)
+  ## saving the graph as a .png
+  png(filename = here("Figures", File), width = 25,
+      height = 16,
+      units = "cm", res = 400)
   print(temp)
   dev.off()
 }
@@ -48,10 +48,10 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  ## saving as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.1)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+      height = 16,
+      units = "cm", res = 400)
   print(temp)
   dev.off()
 }
@@ -59,9 +59,9 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
 ### Create Diagnostic plots
 diagnostic_plots <- function(File, Model) {
   ## saving plot as an SVG
-  svglite(here("Figures", File), width = 10,
-          height = 8,
-          scaling = 1.3)
+  png(filename = here("Figures", File), width = 25,
+      height= 20,
+      units = "cm", res = 400)
   ## creating a multi plot
   # defining multi plot layout
   par(mfrow=c(2,2))
@@ -87,10 +87,10 @@ boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, File){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  ## saving as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.3)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+      height = 16,
+      units = "cm", res = 400)
   print(temp)
   dev.off()
 }

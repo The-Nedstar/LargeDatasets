@@ -14,7 +14,7 @@ nocite: '@whitlock2020analysis, @nichols'
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
-                      message = FALSE, dev = "svg", fig.ext = "svg")
+                      message = FALSE)
 ```
 
 ```{r loading of packages and functions}
@@ -29,7 +29,6 @@ library(phytools)
 library(taxize)
 library(Rage)
 library(popbio)
-library(svglite)
 library(ggbeeswarm)
 library(FSA)
 library(dunn.test)
@@ -104,13 +103,13 @@ GTvL <- as_data_frame(ComSubFlag) %>%
 histogram(GTvL, GTvL$lambda,
           "Population Growth Rate(λ)", 
           paste("Histogram of Growth Rate Within the",
-                ClassName), 0.15, TRUE, "LHist.svg")
+                ClassName), 0.15, TRUE, "LHist.png")
 ## Printing summary statistics for growth rate
 cat("--- Summary statistics for Growth rate ---\n")
 summary(GTvL$lambda)
 ```
 
-![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/LHist.svg)
+![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/LHist.png)
 
 It appears the populationg growth grate is roughly normally distributed around a mean of \~0.9944 so the majority of species are stable with a roughly even distribution between increasing and decreasing.
 
@@ -119,13 +118,13 @@ It appears the populationg growth grate is roughly normally distributed around a
 histogram(GTvL, GTvL$generation_time,
           "Generation Time (years)", 
           paste("Histogram of Generation Time Within the",
-                ClassName), 1, FALSE, "GTHist.svg")
+                ClassName), 1, FALSE, "GTHist.png")
 ## Printing summary statistics for generation time
 cat("--- Summary statistics for generation time ---\n")
 summary(GTvL$generation_time)
 ```
 
-![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.svg)
+![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.png)
 
 The distribution fo generation time appears to be assymetrically distributed with a right skew with a mean of \~7.494 but a median of \~5.944. So most of the species are shorter living (\<10 years) with a fewer that surpass this.
 
@@ -143,10 +142,10 @@ scatterplot(GTvL, GTvL$generation_time,
             "Generation Time (years)", 
             GTvL$lambda, "Growth Rate (λ)", 
             paste("Generation time Vs Growth Rate in the",
-                  ClassName), FALSE, "GTvL.svg")
+                  ClassName), FALSE, "GTvL.png")
 ```
 
-![Figure 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.svg)
+![Figure 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.png)
 
 From first inspection there is potentially a positive relationship, but it is unlikely to be linear.
 
@@ -159,10 +158,10 @@ CGTvL <- subset(GTvL, generation_time < 50)
 ## creation of a linear model and testing violations of assumptions using a diagnostic plot
 # with all the data
 GTvLMod <- lm(lambda ~ generation_time, GTvL)
-diagnostic_plots("GTvLMod DP.svg", GTvLMod)
+diagnostic_plots("GTvLMod DP.png", GTvLMod)
 # with the outlier removed
 CGTvLMod <- lm(lambda ~ generation_time, CGTvL)
-diagnostic_plots("CGTvLMod DP.svg", CGTvLMod)
+diagnostic_plots("CGTvLMod DP.png", CGTvLMod)
 ```
 
 **Log transformed**
@@ -171,10 +170,10 @@ diagnostic_plots("CGTvLMod DP.svg", CGTvLMod)
 ## creation of a log transformed linear model and testing violations of assumptions using a diagnostic plot
 # with all data
 LGTvLMod <- lm(log(lambda) ~ log(generation_time), GTvL)
-diagnostic_plots("LGTvLMod DP.svg", LGTvLMod)
+diagnostic_plots("LGTvLMod DP.png", LGTvLMod)
 # with the outlier removed
 LCGTvLMod <- lm(log(lambda) ~ log(generation_time), CGTvL)
-diagnostic_plots("LCGTvLMod DP.svg", LCGTvLMod)
+diagnostic_plots("LCGTvLMod DP.png", LCGTvLMod)
 ```
 
 **Polynomial**
@@ -183,10 +182,10 @@ diagnostic_plots("LCGTvLMod DP.svg", LCGTvLMod)
 ## creation of a polynomial model and testing violations of assumptions using a diagnostic plot
 # with all the data
 PGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GTvL)
-diagnostic_plots("PGTvLMod DP.svg", PGTvLMod)
+diagnostic_plots("PGTvLMod DP.png", PGTvLMod)
 # with the outlier removed
 PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGTvL)
-diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
+diagnostic_plots("PCGTvLMod DP.png", PCGTvLMod)
 ```
 
 ![Figure 4: diagnostic plots for all attempted models](Figures/Diagnostic%20plots.png)
@@ -260,7 +259,7 @@ IUCNVGTvL <- subset(as_data_frame(ComIUCN),generation_time < 50) %>%
 
 ```{r Comparing status to generation time}
 ## using a self made function to produce a boxplot comparing the varaibles
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.png")
 
 ## running an ANOVA analysis
 cat("--- ANOVA analysis of differences in generation time between conservation statuses ---/n")
@@ -271,7 +270,7 @@ cat("--- Dunn's test analysis of differences in generation time between conserva
 dunnTest(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![Figure 5: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.svg)
+![Figure 5: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.png)
 
 There is a significant difference between vulnerable and the rest of the categories, but none between the rest of the categories. This suggests that species with longer generations are more likely to be categorised as vulnerable. However, this relationship is not found with endangered species, making the overall effect of generation time on vulnerability confusing.
 
@@ -279,7 +278,7 @@ There is a significant difference between vulnerable and the rest of the categor
 
 ```{r comparing status to population growth rate}
 ## using a self made function to produce a boxplot comparing the varaibles
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.png" )
 
 ## running an ANOVA analysis
 cat("--- ANOVA analysis of differences in growth rate between conservation statuses ---/n")
@@ -290,7 +289,7 @@ cat("--- Dunn's test analysis of differences in growth rate between conservation
 dunnTest(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![Figure 6: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.svg)
+![Figure 6: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.png)
 
 In the case of population growth rate, Near threatened and least concerned show no significant different from each other, or from species which have not been evaluated. Endangered species show a significantly decreased growth rate, as expected, whereas vulnerable species show an increased growth rate. This is potentially due to implementation of succsessful protective strategies increasing the growth rate of species which are described as vulnerable.
 
@@ -337,12 +336,12 @@ ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
 row.names(ComSingle) <- ComSingle$OTL_unique_name
 
 ## Plotting our Pruned tree
-svglite(here("Figures", "PrunedTree.svg"), width = 8, height = 8, scaling = 0.9) 
+png(filename = here("Figures", "PrunedTree.png"), width = 20, height= 20, units = "cm", res = 400) 
 plot(PrunedTree, fsize = c(0.7,0.8)) 
 dev.off()
 ```
 
-![](Figures/PrunedTree.svg)
+![](Figures/PrunedTree.png)
 
 ## Plotting phylogeny with population parameters
 
@@ -359,14 +358,14 @@ ContMapL <- setMap(ContMapL, c("white","#FFFFB2","#FECC5C",
                                "#FD8D3C","#E31A1C"))
 
 ## Plotting the phylogenetic tree
-svglite(here("Figures", "ContMapLambda.svg"), width = 8, height = 8, scaling = 1.2) 
+png(filename = here("Figures", "ContMapLambda.png"), width = 20, height= 20, units = "cm", res = 400) 
 plot(ContMapL, fsize = c(0.7,0.8), leg.txt = 
        "log(population growth rate)") 
 dev.off()
 
 ```
 
-![](Figures/ContMapLambda.svg)
+![](Figures/ContMapLambda.png)
 
 It doesn't appear that the population growth rate does is not affected by phylogenetic inertia. There is no clear clustering or relation between individuals with either particularly high or low growth rates, with growth rates often being very different from closely related individuals.
 
@@ -383,14 +382,14 @@ ContMapGT <- setMap(ContMapGT, c("white","light blue","blue",
                                  "violet","purple"))
 
 ## Plotting the phylogenetic tree
-svglite(here("Figures", "ContMapGT.svg"), 
-        width = 8, height = 8, scaling = 1.2)
+png(filename = here("Figures", "ContMapGT.png"), 
+        width = 20, height= 20, units = "cm", res = 400)
 plot(ContMapGT, fsize=c(0.7,0.8), leg.txt = 
        "log(generation time) (years)")
 dev.off()
 ```
 
-![](Figures/ContMapGT.svg)
+![](Figures/ContMapGT.png)
 
 Generation time on the other hand shows a substantial effect of phylogenetic inertia. It is generally more closely matched between closely related individuals than those which are distantly related and shows strong clustering.
 
@@ -419,9 +418,9 @@ PopPerf <- as.factor(setNames(PopPerf$category,
             ComSingle$TipName))
 
 ## plotting our new tree
-svglite(here("Figures", "PerfTree.svg"), width = 8,
-          height = 8,
-          scaling = 0.9)
+png(filename = here("Figures", "PerfTree.png"), width = 20,
+          height= 20,
+          units = "cm", res = 400)
 # plotting a tree with dots coloured depending on whether the growth rate is greater than or less than 1
 dotTree(PrunedTree, PopPerf, colors = setNames(
                      c("#EA0000", "#1E88E5"),
@@ -430,7 +429,7 @@ dotTree(PrunedTree, PopPerf, colors = setNames(
 dev.off()
 ```
 
-![](Figures/PerfTree.svg)
+![](Figures/PerfTree.png)
 
 ------------------------------------------------------------------------
 
@@ -471,10 +470,10 @@ histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line, File){
     xlab(Xtitle) +
     ylab("Frequency") +
     ggtitle(Title)
-  ## saving the graph as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.1)
+  ## saving the graph as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
   print(temp)
   dev.off()
 }
@@ -496,10 +495,10 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  ## saving as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.1)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
   print(temp)
   dev.off()
 }
@@ -507,9 +506,9 @@ scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
 ### Create Diagnostic plots
 diagnostic_plots <- function(File, Model) {
   ## saving plot as an SVG
-  svglite(here("Figures", File), width = 10,
-          height = 8,
-          scaling = 1.3)
+  png(filename = here("Figures", File), width = 25,
+          height= 20,
+          units = "cm", res = 400)
   ## creating a multi plot
   # defining multi plot layout
   par(mfrow=c(2,2))
@@ -535,10 +534,10 @@ boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, File){
     xlab(Xtitle) +
     ylab(Ytitle) +
     ggtitle(Title)
-  ## saving as a .svg
-  svglite(here("Figures", File), width = 10,
-          height = 6,
-          scaling = 1.3)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
   print(temp)
   dev.off()
 }
