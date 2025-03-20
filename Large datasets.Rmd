@@ -55,7 +55,7 @@ class <- "Aves"
 
 # Comadre
 
-Comadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute [@salguero-gómez2016]. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from. Population parameters are stored in matrix population models (MPMs) all accessible through R studio as well as various other programs. This database is particularly useful for ecologists, evolutionary biologists and conservationists
+Comadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute [@salguero-gómez2016]. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from. Population parameters are stored in matrix population models (MPMs) all accessible through R studio as well as various other programs. This database is particularly useful for ecologists, evolutionary biologists and conservationists.
 
 ## Acessing Data
 
@@ -81,7 +81,7 @@ ComSubFlag <- subset(ComFlag,
 
 ## Distribution of growth rate and generation time (Q1)
 
-We first Take a look at the distribution of both growth rate and generation time within our class using the data collected from comadre
+We first Take a look at the distribution of both growth rate and generation time within our class using the data collected from comadre.
 
 ```{r Data wrangling for distribution analysis}
 ## extraction of growth rate and generation time from the MPMs
@@ -104,14 +104,17 @@ histogram(GTvL, GTvL$lambda,
           "Population Growth Rate(λ)", 
           paste("Histogram of Growth Rate Within the",
                 ClassName), 0.15, TRUE, "LHist.png")
+```
+
+![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade. Red horizontal line shows a population growth rate of 1 (stable)](Figures/LHist.png)
+
+```{r Summary Stats, echo=FALSE}
 ## Printing summary statistics for growth rate
 cat("--- Summary statistics for Growth rate ---\n")
 summary(GTvL$lambda)
 ```
 
-![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/LHist.png)
-
-It appears the populationg growth grate is roughly normally distributed around a mean of \~0.9944 so the majority of species are stable with a roughly even distribution between increasing and decreasing.
+It appears the population growth grate is roughly normally distributed around a mean of \~0.9944 so the majority of species are stable with a roughly even distribution between increasing and decreasing. With the mean being so close to 1, this means that on average the species are stable.
 
 ```{r Histogram of generation time distribution}
 ## using a self made function to save an svg of a histogram
@@ -119,18 +122,22 @@ histogram(GTvL, GTvL$generation_time,
           "Generation Time (years)", 
           paste("Histogram of Generation Time Within the",
                 ClassName), 1, FALSE, "GTHist.png")
+
+```
+
+![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.png)
+
+```{r printing values, echo=FALSE}
 ## Printing summary statistics for generation time
 cat("--- Summary statistics for generation time ---\n")
 summary(GTvL$generation_time)
 ```
 
-![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.png)
-
 The distribution fo generation time appears to be assymetrically distributed with a right skew with a mean of \~7.494 but a median of \~5.944. So most of the species are shorter living (\<10 years) with a fewer that surpass this.
 
 ## Relationship between Growth rate and generation time (Q2)
 
-For the next part of the analysis, we compare growth rate and generation time to eachother and attempt to fit a model to explore potential correlations. We would expect there to be a negative correlation between the variables.
+For the next part of the analysis, we compare growth rate and generation time to each other and attempt to fit a model to explore potential correlations. We would expect there to be a negative correlation between the variables.
 
 H0: There is no significant relationship between growth rate and generation time
 
@@ -147,7 +154,7 @@ scatterplot(GTvL, GTvL$generation_time,
 
 ![Figure 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.png)
 
-From first inspection there is potentially a positive relationship, but it is unlikely to be linear.
+From first inspection there is potentially a positive relationship, but it is unlikely to be linear. The heterogeneity between growth rate (mostly normal) and generation time (very skewed) is going to make the analysis quite difficult and using a transformation or a non-parametric alternative is likely going to be needed. Due to this, we will run multiple generalised linear models with different parameters.
 
 ### **Linear model**
 
@@ -188,7 +195,7 @@ PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_t
 diagnostic_plots("PCGTvLMod DP.png", PCGTvLMod)
 ```
 
-![Figure 4: diagnostic plots for all attempted models](Figures/Diagnostic%20plots.png)
+![Figure 4: diagnostic plots for all attempted models. a-b) standard linear model, c-d) Linear model after a log transformation, e-f) polynomial model, cubic (This figure is not able to adapt to different classes and will only show up with the Aves Class Data, the output of these graphs individually can be found in the files as specified in the code)](Figures/Diagnostic%20plots.png)
 
 It appears that the data violates the assumptions of a generalized linear model under all attempted variations. For all models, both with and without the outlier removed the 'residuals vs fitted' and 'scale vs location' plots both show deviations from a flat horizontal relationship, indicating that the data hetereoscedastic and the relationship is non-linear.\
 The polynomial has the least violation of these assumptions, however the outliers have a greater impact on the data, even when the most severe outlier is removed.
@@ -272,7 +279,7 @@ dunnTest(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 
 ![Figure 5: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.png)
 
-There is a significant difference between vulnerable and the rest of the categories, but none between the rest of the categories. This suggests that species with longer generations are more likely to be categorised as vulnerable. However, this relationship is not found with endangered species, making the overall effect of generation time on vulnerability confusing.
+There is a significant difference between vulnerable and the rest of the categories, but none between the rest of the categories. This suggests that species with longer generations are more likely to be categorised as vulnerable. However, this relationship is not found with endangered species, making the overall effect of generation time on vulnerability unclear.
 
 **Growth Rate**
 
@@ -291,7 +298,7 @@ dunnTest(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 
 ![Figure 6: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.png)
 
-In the case of population growth rate, Near threatened and least concerned show no significant different from each other, or from species which have not been evaluated. Endangered species show a significantly decreased growth rate, as expected, whereas vulnerable species show an increased growth rate. This is potentially due to implementation of succsessful protective strategies increasing the growth rate of species which are described as vulnerable.
+In the case of population growth rate, Near threatened and least concerned show no significant different from each other, or from species which have not been evaluated. Endangered species show a significantly decreased growth rate, as expected, whereas vulnerable species show an increased growth rate. This is potentially due to implementation of succsessful protective strategies increasing the growth rate of species which have been described as vulnerable.
 
 # open tree of life (Q4)
 

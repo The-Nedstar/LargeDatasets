@@ -143,6 +143,17 @@ scatterplot(GTvL, GTvL$generation_time,
 
 ![Fig 3: a scatterplot comparing growth rate to generation time](Figures/GTvL.png)
 
+### generalised linear model analysis
+
+```{r}
+## creation of a linear model and testing violations of assumptions using a diagnostic plot
+# with all the data
+GTvLMod <- lm(lambda ~ generation_time, GTvL)
+diagnostic_plots("GTvLMod DP.png", GTvLMod)
+```
+
+![](Figures/GTvLMod DP.png)
+
 ------------------------------------------------------------------------
 
 # IUCN RedList
