@@ -2,19 +2,22 @@
 title: "Large datasets"
 author: "Anonymous"
 date: "2025-03-06"
-output: html_document
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
 bibliography: references.bib
-nocite: |
-  @whitlock2020analysis, @nichols
+nocite: '@whitlock2020analysis, @nichols'
 ---
 
 ## Initialisation
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, 
+                      message = FALSE)
 ```
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r loading of packages and functions}
 # clearing the environment
 rm(list = ls())
 
@@ -26,20 +29,23 @@ library(phytools)
 library(taxize)
 library(Rage)
 library(popbio)
-library(svglite)
 library(ggbeeswarm)
+library(FSA)
+library(dunn.test)
 
-# loading self made functions
-source(here("Functions.R"))
+# loading self made functions (file contents shown at the end of document)
+source(here("Data", "Functions.R"))
 ```
 
-# Abstract
+# Introduction
 
-In this document we run an analysis of biological patterns within the Aves class using data from various online subsets. We collect demographic data from Compadre, species' status from IUCN RedList and phylogenetic data from the Open Tree of Life project. Focusing on their growth rate, generation time, status and the relationships of these variables to eachother, and to their phylogeny.
+In this document we run an analysis of biological patterns within the Aves class using data from various online databases. We collect demographic data from comadre, species' status from IUCN RedList and phylogenetic data from the Open Tree of Life project. Focusing on their growth rate, generation time, status and the relationships of these variables to eachother, and to their phylogeny.
 
-From this data...
+This Document also functions as a template for this analysis to be used for any species, by changing the variable "class" to the name of the class (as used in the comadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly, and the rest of the code is created so you can easily change the values being analysed. Some extra work may be needed to account for inconsistencies between databases.
 
-This Document also functions as a template for this analysis in any species, by changing the variable "class" to the name of the class (as used in the compadre database) you want to follow, and the code will run the same analysis on that data and change figures and figure titles accordingly. On [@the] anonomised github repository you can find all of the files used and a blank template containing the code without the specific analysis and write up for usage in your own analysis.
+On the anonomised github repository you can find all of the files used and a completed template "Large datasets.rmd" for the Aves class [@the2025].
+
+GitHub Link: <https://github.com/The-Nedstar/LargeDatasets>
 
 ## Enter your species of interest here:
 
@@ -47,25 +53,9 @@ This Document also functions as a template for this analysis in any species, by 
 class <- "Aves"
 ```
 
-# Compadre
+# Comadre
 
-Compadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from.
-
--   online database of demographic data
-
-    -   their species identification and taxonomy
-
-    -   geographic data
-
-    -   data bout their life histories
-
-    -   collected from global archived studies
-
--   matrix population models
-
--   useful for ecologogists, evolutionary biologists and conservationists
-
--   hosted at max plank
+Comadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute [@salguero-gómez2016]. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from. Population parameters are stored in matrix population models (MPMs) all accessible through R studio as well as various other programs. This database is particularly useful for ecologists, evolutionary biologists and conservationists
 
 ## Acessing Data
 
@@ -73,7 +63,7 @@ Compadre is a online database containing demographic data for many animals colle
 ## creating class variable for titling of figures
 ClassName <- paste(class, "class")
 
-## fetching data from the compadre database
+## fetching data from the comadre database
 Comadre <- cdb_fetch("comadre")
 
 ## Subsetting data
@@ -89,346 +79,401 @@ ComSubFlag <- subset(ComFlag,
                       check_ergodic == TRUE)
 ```
 
-## Data
+## Distribution of growth rate and generation time (Q1)
 
-### Histograms (Q1)
+We first Take a look at the distribution of both growth rate and generation time within our class using the data collected from comadre.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r Data wrangling for distribution analysis}
+## extraction of growth rate and generation time from the MPMs
 ComSubFlag$lambda <- unlist(lapply(matA(ComSubFlag), 
                                    popbio::lambda))
-
-ComSubFlag$generation_time <- unlist(lapply(matA(ComSubFlag), 
+ComSubFlag$generation_time <- unlist(lapply(matA(ComSubFlag),
                                    popbio::generation.time))
+
+## removing any observations with infinite or NA values in either variable
 GTvL <- as_data_frame(ComSubFlag) %>%
   select(lambda, generation_time) %>% 
   mutate(across(everything(), ~ na_if(., Inf))) %>% 
   mutate(across(everything(), ~ na_if(., -Inf))) %>%
   drop_na()
-
-#Examine the distribution of population growth rates:
-histogram(GTvL, GTvL$lambda,
-          "Population Growth Rate(λ)", 
-          paste("Histogram of Growth Rate Within the ", ClassName), 0.2, TRUE, 
-          "LHist.svg")
-
-histogram(GTvL, GTvL$generation_time,
-          "Generation Time (years)", 
-          paste("Histogram of Generation Time Within the ", ClassName), 1, FALSE, 
-          "GTHist.svg")
 ```
 
-![](Figures/LHist.svg)
+```{r Histogram of growth rate distribution}
+## using a self made function to save an svg of a histogram
+histogram(GTvL, GTvL$lambda,
+          "Population Growth Rate(λ)", 
+          paste("Histogram of Growth Rate Within the",
+                ClassName), 0.15, TRUE, "LHist.png")
+## Printing summary statistics for growth rate
+cat("--- Summary statistics for Growth rate ---\n")
+summary(GTvL$lambda)
+```
 
-![](Figures/GTHist.svg)
+![Fig 1: Histogram showing the distribution of the population growth rate](Figures/LHist.png)
 
-## relationship (Q2)
+```{r Histogram of generation time distribution}
+## using a self made function to save an svg of a histogram
+histogram(GTvL, GTvL$generation_time,
+          "Generation Time (years)", 
+          paste("Histogram of Generation Time Within the",
+                ClassName), 1, FALSE, "GTHist.png")
+## Printing summary statistics for generation time
+cat("--- Summary statistics for generation time ---\n")
+summary(GTvL$generation_time)
+```
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+![Fig 2: Histogram showing the distribution of the population growth rate](Figures/GTHist.png)
+
+## Relationship between Growth rate and generation time (Q2)
+
+For the next part of the analysis, we compare growth rate and generation time to eachother and attempt to fit a model to explore potential correlations. We would expect there to be a negative correlation between the variables.
+
+H0: There is no significant relationship between growth rate and generation time
+
+H1: There is a significant relationship between growth rate and generation time
+
+```{r Scatterplot of growth rate compared to generation time}
+## creation of a explorative scatterplot comparing growth rate and generation time using a self made function
 scatterplot(GTvL, GTvL$generation_time, 
             "Generation Time (years)", 
             GTvL$lambda, "Growth Rate (λ)", 
-            paste("Generation time Vs Growth Rate in the ", ClassName), FALSE, "GTvL.svg")
+            paste("Generation time Vs Growth Rate in the",
+                  ClassName), FALSE, "GTvL.png")
 ```
 
-![](Figures/GTvL.svg)
+![Fig 3: a scatterplot comparing growth rate to generation time](Figures/GTvL.png)
 
-### Linear model
-
-normal
-
-```{r}
-CGTvL <- subset(GTvL, generation_time < 50)
-
-GTvLMod <- lm(lambda ~ generation_time, GTvL)
-diagnostic_plots("GTvLMod DP.svg", GTvLMod)
-
-CGTvLMod <- lm(lambda ~ generation_time, CGTvL)
-diagnostic_plots("CGTvLMod DP.svg", CGTvLMod)
-```
-
-log transformed
-
-```{r}
-LGTvLMod <- lm(log(lambda) ~ log(generation_time), GTvL)
-diagnostic_plots("LGTvLMod DP.svg", LGTvLMod)
-
-LCGTvLMod <- lm(log(lambda) ~ log(generation_time), CGTvL)
-diagnostic_plots("LCGTvLMod DP.svg", LCGTvLMod)
-```
-
-polynomial
-
-```{r}
-PGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), GTvL)
-diagnostic_plots("PGTvLMod DP.svg", PGTvLMod)
-
-PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_time^3), CGTvL)
-diagnostic_plots("PCGTvLMod DP.svg", PCGTvLMod)
-```
-
-![](Figures/Diagnostic%20plots.png)
-
-## Spearman's rank correlation coefficient
-
--   other things very much not working
-
--   so trying a non parametric method
-
--   meets the assumptions
-
-    -   monotonic
-
-    -   outlier doesn't matter as robust
-
-    -   indepedent observations
-
-```{r}
-cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
-```
-
--   very significant
-
--   moderate positive correlation, but doesn't describe the data too well
-
-### Plotting
-
-```{r}
-scatterplot(GTvL, GTvL$generation_time,
-            "Generation Time (years)", 
-            GTvL$lambda, "Growth Rate (λ)", 
-            paste("Generation time Vs Growth Rate in the", ClassName), TRUE, "GtvLc.svg")
-```
-
-![](Figures/GtvLc.svg)
-
-## seperating duplicates?
-
-```{r}
-ComSingle <- ComSubFlag[which(
-  duplicated(ComSubFlag$SpeciesAccepted)==FALSE),]
-```
+------------------------------------------------------------------------
 
 # IUCN RedList
 
--   international union for conservation of nature
-
-    -   big collective of organisations
-
-    -   all about helping people to help conserve
-
--   classifies the status of them in terms of their conservation
-
--   helps them to be treated accordingly
+The International Union for the Conservation of Nature (IUCN) is a collection of organisations that work together to aid in conservation efforts [@theiucn]. the RedList is a database containing many species and describing their conservation status. Using this database, research and conservation efforts can be effectively distributed between the species that most need it.
 
 ## Acessing data (Q3)
 
--   due to issues with data having to load from computer
+Due to issues with accessing the online database, instead we have imported the data relevant to the comadre database from a csv (also accessible on the github repository, under the folder "Data" [@the2025]).
 
-```{r}
-IUCNData<- read.csv(here("IUCN_comadre_compadre.csv"))
-
+```{r combining IUCN and comadre datasets}
+## loading the IUCNRedList data
+IUCNData <- read.csv(here("Data", "IUCN_comadre_compadre.csv"))
+# combining with our comadre dataset
 ComIUCN <- ComSubFlag %>%
   left_join(x = ., y = IUCNData, by = "SpeciesAccepted") %>% 
-  mutate(IUCNstatus = case_when(
+  mutate(IUCNstatus = replace_na(IUCNstatus, "NE"))
+# producing a new column converting the two letter status codes into full words
+ComIUCN <- ComIUCN %>% 
+  mutate(IUCNstatLong = case_when(
     IUCNstatus == "EN" ~ "Endangered",
     IUCNstatus == "VU" ~ "Vulnerable",
     IUCNstatus == "NT" ~ "Near Threatened",
     IUCNstatus == "LC" ~ "Least Concern",
-    is.na(IUCNstatus) == TRUE ~ "Not Assessed"),
-    IUCNstatus = factor(IUCNstatus, 
-                        levels = c("Endangered","Vulnerable",
-                                   "Near Threatened","Least Concern",
-                                   "Not Assessed")))
-
+    IUCNstatus == "DD" ~ "Data Deficient",
+    IUCNstatus == "CR" ~ "Critically Endangered",
+    IUCNstatus == "EW" ~ "Extinct in the wild",
+    IUCNstatus == "EX" ~ "Extinct",
+    IUCNstatus == "NE" ~ "Not Evaluated"),
+    IUCNstatLong = factor(IUCNstatLong, 
+                        levels = c("Extinct in the wild",
+                                   "Extinct","Endangered",
+                                   "Vulnerable",
+                                   "Near Threatened",
+                                   "Least Concern",
+                                   "Data Deficient",
+                                   "Not Evaluated")))
+## converting into a data frame
 ComIUCN <- as_data_frame(ComIUCN)
-
-ComIUCN$IUCNcolour <- NA
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Endangered")] <- "Orange" 
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Vulnerable")] <- "Yellow"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Near Threatened")] <- "Dark green"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Least Concern")] <- "Green"
-ComIUCN$IUCNcolour[which(ComIUCN$IUCNstatus == "Not Assessed")] <- "Blue"
 ```
 
 ## analysis
 
-```{r}
-IUCNVGTvL<- as_data_frame(ComIUCN) %>%
-  select(lambda, generation_time, IUCNstatus) %>% 
-  mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
-  mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
+```{r Producing a dataframe with only the necessary values and NAs/ infinite values removed}
+IUCNVGTvL <- subset(as_data_frame(ComIUCN),generation_time < 50) %>%
+  select(lambda, generation_time, IUCNstatLong) %>% 
+  mutate(across(c(lambda, generation_time), 
+                ~ na_if(., Inf))) %>% 
+  mutate(across(c(lambda, generation_time), 
+                ~ na_if(., -Inf))) %>%
   drop_na()
 ```
 
-generation time
+**generation time**
 
-```{r}
+```{r Comparing status to generation time}
+## using a self made function to produce a boxplot comparing the varaibles
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.png")
 
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatus, "IUCN status", IUCNVGTvL$generation_time, "Generation Time (years)", paste("IUCN status vs generation time in the", ClassName), "IUCNvGT.svg")
-
-
-ANOVAGT <- aov(generation_time ~ IUCNstatus, data = IUCNVGTvL)
+## running an ANOVA analysis
+cat("--- ANOVA analysis of differences in generation time between conservation statuses ---/n")
+ANOVAGT <- aov(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVAGT)
+
+cat("--- Dunn's test analysis of differences in generation time between conservation statuses ---/n")
+dunnTest(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![](Figures/GTHist.svg)
+![Fig 4: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.png)
 
-Growth Rate
+**Growth Rate**
 
-```{r}
-boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatus, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.svg" )
+```{r comparing status to population growth rate}
+## using a self made function to produce a boxplot comparing the varaibles
+boxplot(IUCNVGTvL, IUCNVGTvL$IUCNstatLong, "IUCN status", IUCNVGTvL$lambda, "Growth Rate (λ)", paste("IUCN status vs growth rate in the", ClassName), "IUCNvL.png" )
 
-ANOVALambda <- aov(lambda ~ IUCNstatus, data = IUCNVGTvL)
+## running an ANOVA analysis
+cat("--- ANOVA analysis of differences in growth rate between conservation statuses ---/n")
+ANOVALambda <- aov(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 summary(ANOVALambda)
+
+cat("--- Dunn's test analysis of differences in growth rate between conservation statuses ---/n")
+dunnTest(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![](Figures/LHist.svg)
+![Fig 5: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.png)
+
+------------------------------------------------------------------------
 
 # open tree of life (Q4)
 
--   collaborative project to create a dynamic phylogeny
+The open tree of life is a collaborative effort to create a dynamic phylogeny of the entire tree of life. It is openly accessible through an API, but in this case it is being accessed through a .tre file of all of the data relevant to the comadre dataset from the repository [@jones2024] (also accessible on the github repository, under the folder "Data" [@the2025]).
 
-    -   comprehensive tree of life
-
-    -   everything
-
-    -   openly accessible
-
-    -   single one
-
--   accessible through api interface
-
--   
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r eliminating species that arent in the open tree of life}
+## Creating a new dataframe with each species only present once
 ComSingle <- ComIUCN[which(
-  duplicated(ComIUCN$SpeciesAccepted)==FALSE),]
+  duplicated(ComIUCN$SpeciesAccepted) == FALSE),]
 
+## wrangling data using the open tree of life online API
+# Creating a list of names from our dataframe that matches an entry in the open tree of life
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
-
+# adding the open tree of life id to our dataframe
 ComSingle$ott_id <- ResNames$ott_id
+# removing any values where there is no id
 ComSingle <- ComSingle[-which(is.na(ComSingle$ott_id)),]
-
+# updating our list of mached names using only the ones with an id
 ResNames <- rotl::tnrs_match_names(names = ComSingle$SpeciesAccepted)
-
+# putting this names into a new column in our dataframe
 ComSingle$OTL_unique_name <- ResNames$unique_name
-
-ComSingle <- as_data_frame(ComSingle)
-row.names(ComSingle) <- ResNames$unique_name
 ```
 
-```{r}
+```{r Creating our phylogenetic tree}
+## Loading in the tree data
+Tree <- read.tree(here("Data", "COMPADRE-COMADRE_Phylo_June_16_2019.tre"))
 
-#This tree contains information for most of the species in COMADRE and COMPADRE, and can also be found here https://github.com/jonesor/compadreDB/tree/master/ under the subfolder "Phylogeny" 
-
-Tree <- read.tree("COMPADRE-COMADRE_Phylo_June_16_2019.tre")
-
-#Let's clean up the names in the tree, so we can compare them with the names in our object
-Tree$tip.label <- gsub("_", " ", Tree$tip.label)
-
+## remove NA and infinite values from our dataframe          
 ComSingle <- ComSingle  %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., Inf))) %>% 
   mutate(across(c(lambda, generation_time), ~ na_if(., -Inf))) %>%
   drop_na(lambda, generation_time)
-
-#Now we need to "prune" the tree, which means to cut out the branches that are not present in our data:
+                  
+## Using the Open tree of life to create our own tree
+# Shortening the tip labels
+Tree$tip.label <- gsub("_", " ", Tree$tip.label)
+# Removing species which aren't in our dataframe
 PrunedTree <- drop.tip(Tree, setdiff(Tree$tip.label, ComSingle$OTL_unique_name))
-
-#The resulting tree has 34 tips, meaning 34 speci
-
-#So naturally it seems like we are missing some from our object, which are not present in the tree.
-
+# alterning the order of our dataframe to map the tree
 ComSingle <- ComSingle[match(PrunedTree$tip.label,ComSingle$OTL_unique_name),]
+# setting the species names as the row names
 row.names(ComSingle) <- ComSingle$OTL_unique_name
-#Checking that the order is the same between the object and the tree
 
-# Let us now plot the values of population growth rate at the tips of the phylogeny, and reconstruct the ancestral state of the originating lineange
-LogL <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
-# create "contMap" object, which allows for the reconstruction of likely ancestral traits
-
+## Plotting our Pruned tree
+png(filename = here("Figures", "PrunedTree.png"), width = 20, height= 20, units = "cm", res = 400) 
+plot(PrunedTree, fsize = c(0.7,0.8)) 
+dev.off()
 ```
 
-growth rate
+![Fig 6: Basic phylogeny](Figures/PrunedTree.png)
+
+## Plotting phylogeny with population parameters
+
+### **growth rate**
 
 ```{r}
-ContMapL <- contMap(PrunedTree, LogL,plot=FALSE,res=1000, 
+## Creating a list containing the Log of the growth rate attached to the species name
+LogL <- log(setNames(ComSingle$lambda, row.names(ComSingle)))
+
+## creating a phylogenetic tree coloured based on the population growth rate
+ContMapL <- contMap(PrunedTree, LogL,plot=FALSE,res=1000,
                     method="anc.ML") 
 ContMapL <- setMap(ContMapL, c("white","#FFFFB2","#FECC5C",
                                "#FD8D3C","#E31A1C"))
 
-svglite(here("Figures", "ContMapLambda.svg"), width = 8, height = 8, scaling = 1.2) 
+## Plotting the phylogenetic tree
+png(filename = here("Figures", "ContMapLambda.png"), width = 20, height= 20, units = "cm", res = 400) 
 plot(ContMapL, fsize = c(0.7,0.8), leg.txt = 
        "log(population growth rate)") 
-par(mar=c(5.1,4.1,4.1,2.1))
-## reset margins to default 
 dev.off()
 
 ```
 
-![](Figures/ContMapLambda.svg)
+![Fig 7: Phylogeny with growth rate](Figures/ContMapLambda.png)
 
-Generation time
+### **Generation time**
 
 ```{r}
+## Creating a list containing the Log of the generation time attached to the species name
 LogGT <- log(setNames(ComSingle$generation_time, row.names(ComSingle)))
 
+## creating a phylogenetic tree coloured based on the generation time
 ContMapGT <- contMap(PrunedTree, LogGT,plot=FALSE,res=200, 
                      method="anc.ML")
 ContMapGT <- setMap(ContMapGT, c("white","light blue","blue",
                                  "violet","purple"))
 
-svglite(here("Figures", "ContMapGT.svg"), 
-        width = 8, height = 8, scaling = 1.2)
+## Plotting the phylogenetic tree
+png(filename = here("Figures", "ContMapGT.png"), 
+        width = 20, height= 20, units = "cm", res = 400)
 plot(ContMapGT, fsize=c(0.7,0.8), leg.txt = 
        "log(generation time) (years)")
 dev.off()
 ```
 
-![](Figures/ContMapGT.svg)
+![Fig 8: Phylogeny with generation time](Figures/ContMapGT.png)
 
 ## population performance (Q5)
+
+This final phylogeny shows Whether each species is increasing (population growth rate \> 1) or decreasing (population growth rate \<1) as well as their conservation status.
 
 using code from [@exercise]
 
 ```{r}
-## creating new column
-PopPerf <- 
-  as_data_frame(ComSingle$lambda) %>% 
+## Creating a list of either "Increase" if growth rate is greater than one, or "Decrease" if it is less
+PopPerf <- as_data_frame(ComSingle$lambda) %>% 
   mutate(category = factor(
     case_when(value < 1  ~ "Decrease",
-              value > 1  ~ "Increase")
-  ))
+              value > 1  ~ "Increase")))
 
-IUCNstatus <- as_data_frame(ComSingle$IUCNstatus) %>% 
-  mutate(IUCNstatus = case_when(
-    value == "Endangered" ~ " EN",
-    value == "Vulnerable" ~ " VU",
-    value == "Near Threatened" ~ " NT",
-    value == "Least Concern" ~ " LC",
-    value == "Not Assessed" ~ " NA"))
-
-IUCNstatus$name <- PrunedTree$tip.label
-
-IUCNstatus$Name <- PrunedTree$tip.label
-
-IUCNstatus$TipName <- paste(IUCNstatus$IUCNstatus, IUCNstatus$Name, 
-                            sep = "   ")
-
-row.names(PopPerf) <- IUCNstatus$TipName
+## adding the conservation status to the tip labels
+# seperating creating a new column in our dataframe combining the status and the species name into one string
+ComSingle$TipName <- paste(ComSingle$IUCNstatus,
+                           ComSingle$OTL_unique_name, 
+                           sep = " ")
+# replacing the tip labels with these new strings
+PrunedTree$tip.label <- ComSingle$TipName
+# replacing PopPerf with a list of factors as named by our new tip labels
 PopPerf <- as.factor(setNames(PopPerf$category,
-            IUCNstatus$TipName))
+            ComSingle$TipName))
 
-PrunedTree$tip.label <- IUCNstatus$TipName
-
-svglite(here("Figures", "PerfTree.svg"), width = 8,
-          height = 8,
-          scaling = 1.1)
-dotTree(PrunedTree, PopPerf, 
-                   colors = setNames(
+## plotting our new tree
+png(filename = here("Figures", "PerfTree.png"), width = 20,
+          height= 20,
+          units = "cm", res = 400)
+# plotting a tree with dots coloured depending on whether the growth rate is greater than or less than 1
+dotTree(PrunedTree, PopPerf, colors = setNames(
                      c("#EA0000", "#1E88E5"),
-                     c("Decrease","Increase"))
-                   , ftype="i", )
+                     c("Decrease","Increase")),
+        ftype="i", )
 dev.off()
 ```
 
-![](Figures/PerfTree.svg)
+![Figure 9: Phylogeny with increase/ decrease and status](Figures/PerfTree.png)
+
+------------------------------------------------------------------------
+
+# Appendix
+
+## references
+
+::: {#refs}
+:::
+
+## Contents of the Functions.R file
+
+Can also be found on the anonymised github repository [@the2025].
+
+```{r echo=TRUE, eval=FALSE}
+###########################################
+# Functions for the Large Dataset assignment
+# author: anonymous
+###########################################
+
+### creation of a histogram
+histogram <- function(Data, Xaxis, Xtitle, Title, BW, Line, File){
+  ## defining the histogram
+  temp <- ggplot(Data, aes(x = Xaxis)) +
+    geom_histogram(aes(fill = as.factor(floor(..x.. / BW) %% 2)), # alternative colours
+                   binwidth = BW, boundary = 1, # ensuring it is split at the value 1
+                   colour = "black", size = 0.4) +
+    (if (Line == TRUE) { # only carrying out if specified
+      geom_vline(xintercept = 1, colour = "red", 
+                 size = 1.3, linetype = "21")}) + # creates a vertical line at the value 1
+    scale_fill_manual(values = c("#707070", "#555555")) + # specifying alternating colours
+    theme_bw()+
+    theme(
+      legend.position = "none", # removing the legend
+      axis.title = element_text(size = 14),
+      title = element_text(size = 14)
+    ) +
+    xlab(Xtitle) +
+    ylab("Frequency") +
+    ggtitle(Title)
+  ## saving the graph as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
+  print(temp)
+  dev.off()
+}
+
+### create a scatterplot
+scatterplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, Line, File){
+  ## creating the scatterplot
+  temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis)) +
+    geom_point(colour = "darkblue")+
+    (if (Line == TRUE) { # Only running if specified
+      geom_smooth(method = "lm", se = TRUE, linetype = "solid", 
+                  colour = "darkred")}) + # creating a line defined by a generalised linear model
+    theme_bw()+
+    theme(
+      legend.position = "none", # removing the legend
+      axis.title = element_text(size = 14),
+      title = element_text(size = 14)
+    ) +
+    xlab(Xtitle) +
+    ylab(Ytitle) +
+    ggtitle(Title)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
+  print(temp)
+  dev.off()
+}
+
+### Create Diagnostic plots
+diagnostic_plots <- function(File, Model) {
+  ## saving plot as an SVG
+  png(filename = here("Figures", File), width = 25,
+          height= 20,
+          units = "cm", res = 400)
+  ## creating a multi plot
+  # defining multi plot layout
+  par(mfrow=c(2,2))
+  # combining each diagnostic plot into one multi plot
+  DiaPlots <- (plot(Model,1) | plot(Model,2)) / (plot(Model,3) | plot(Model,5))
+  dev.off()
+}
+
+### create a boxplot
+boxplot <- function(Data, Xaxis, Xtitle, Yaxis, Ytitle, Title, File){
+  ## defining the boxplot
+  temp <- ggplot(Data, aes(x = Xaxis, y = Yaxis, fill = Xaxis)) +
+    geom_boxplot() +
+    geom_beeswarm(alpha = 0.6, size = 0.75, corral.width = 0.5) +
+    scale_fill_manual(values = c("#E89494", "#A4DFE4", "#8082E4",
+                                 "#F2D16F", "#EC89E4")) + # defining colours
+    theme_bw() +
+    theme(
+      legend.position = "none", # removing the legend
+      axis.title = element_text(size = 14),
+      title = element_text(size = 14)
+    ) +
+    xlab(Xtitle) +
+    ylab(Ytitle) +
+    ggtitle(Title)
+  ## saving as a .png
+  png(filename = here("Figures", File), width = 25,
+          height = 16,
+          units = "cm", res = 400)
+  print(temp)
+  dev.off()
+}
+```
