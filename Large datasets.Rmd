@@ -53,6 +53,8 @@ GitHub Link: <https://github.com/The-Nedstar/LargeDatasets>
 class <- "Aves"
 ```
 
+------------------------------------------------------------------------
+
 # Comadre
 
 Comadre is a online database containing demographic data for many animals collected from almost a thousand studies hosted at the Max Planck institute [@salguero-gómez2016]. It includes: Their species identification and taxonomy; geographical data; population parameters such as generation time and growth rate and information on the studies the data is taken from. Population parameters are stored in matrix population models (MPMs) all accessible through R studio as well as various other programs. This database is particularly useful for ecologists, evolutionary biologists and conservationists.
@@ -106,7 +108,11 @@ histogram(GTvL, GTvL$lambda,
                 ClassName), 0.15, TRUE, "LHist.png")
 ```
 
-![Figure 1: Histogram showing the distribution of the population growth rate within the Aves Clade. Red horizontal line shows a population growth rate of 1 (stable)](Figures/LHist.png)
+------------------------------------------------------------------------
+
+![Fig 1: Histogram showing the distribution of the population growth rate within the Aves Clade. Red horizontal line shows a population growth rate of 1 (stable)](Figures/LHist.png)
+
+------------------------------------------------------------------------
 
 ```{r Summary Stats, echo=FALSE}
 ## Printing summary statistics for growth rate
@@ -125,7 +131,11 @@ histogram(GTvL, GTvL$generation_time,
 
 ```
 
-![Figure 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.png)
+------------------------------------------------------------------------
+
+![Fig 2: Histogram showing the distribution of the population growth rate within the Aves Clade.](Figures/GTHist.png)
+
+------------------------------------------------------------------------
 
 ```{r printing values, echo=FALSE}
 ## Printing summary statistics for generation time
@@ -152,7 +162,11 @@ scatterplot(GTvL, GTvL$generation_time,
                   ClassName), FALSE, "GTvL.png")
 ```
 
-![Figure 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.png)
+------------------------------------------------------------------------
+
+![Fig 3: a scatterplot comparing growth rate to generation time in the Aves class.](Figures/GTvL.png)
+
+------------------------------------------------------------------------
 
 From first inspection there is potentially a positive relationship, but it is unlikely to be linear. The heterogeneity between growth rate (mostly normal) and generation time (very skewed) is going to make the analysis quite difficult and using a transformation or a non-parametric alternative is likely going to be needed. Due to this, we will run multiple generalised linear models with different parameters.
 
@@ -195,7 +209,11 @@ PCGTvLMod <- lm(lambda ~ generation_time + I(generation_time^2) + I(generation_t
 diagnostic_plots("PCGTvLMod DP.png", PCGTvLMod)
 ```
 
-![Figure 4: diagnostic plots for all attempted models. a-b) standard linear model, c-d) Linear model after a log transformation, e-f) polynomial model, cubic (This figure is not able to adapt to different classes and will only show up with the Aves Class Data, the output of these graphs individually can be found in the files as specified in the code)](Figures/Diagnostic%20plots.png)
+------------------------------------------------------------------------
+
+![Fig 4: diagnostic plots for all attempted models. a-b) standard linear model, c-d) Linear model after a log transformation, e-f) polynomial model, cubic (This figure is not able to adapt to different classes and will only show up with the Aves Class Data, the output of these graphs individually can be found in the files as specified in the code)](Figures/Diagnostic%20plots.png)
+
+------------------------------------------------------------------------
 
 It appears that the data violates the assumptions of a generalized linear model under all attempted variations. For all models, both with and without the outlier removed the 'residuals vs fitted' and 'scale vs location' plots both show deviations from a flat horizontal relationship, indicating that the data hetereoscedastic and the relationship is non-linear.\
 The polynomial has the least violation of these assumptions, however the outliers have a greater impact on the data, even when the most severe outlier is removed.
@@ -204,12 +222,14 @@ The polynomial has the least violation of these assumptions, however the outlier
 
 Due to the data violating the assumptions of a linear model approach, we decided to move forward with a non parametric approach using a Spearman's rank correlation coefficient. Our data does match the assumptions as it is monotonic with independent observations and as a ranked method it is robust to outliers.
 
-```{r Spearmans rank correlation test}
+```{r Spearmans rank correlation test, echo=FALSE}
 cat("--- Outcome of the Spearman's rank correlation test ---\n")
 cor.test(GTvL$lambda, GTvL$generation_time, method = "spearman")
 ```
 
 The results of this test show that there is sufficient data to reject our null hypotheses. There appears to be a relatively weak positive relationship between the data. Considering the diagnostic plots from earlier this relationship is likely non-linear.
+
+------------------------------------------------------------------------
 
 # IUCN RedList
 
@@ -277,7 +297,11 @@ cat("--- Dunn's test analysis of differences in generation time between conserva
 dunnTest(generation_time ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![Figure 5: Boxplot showing the generation time of species in each conservation status category](Figures/IUCNvGT.png)
+------------------------------------------------------------------------
+
+![Fig 5: Boxplot showing the generation time of species in each conservation status category.](Figures/IUCNvGT.png)
+
+------------------------------------------------------------------------
 
 There is a significant difference between vulnerable and the rest of the categories, but none between the rest of the categories. This suggests that species with longer generations are more likely to be categorised as vulnerable. However, this relationship is not found with endangered species, making the overall effect of generation time on vulnerability unclear.
 
@@ -296,9 +320,15 @@ cat("--- Dunn's test analysis of differences in growth rate between conservation
 dunnTest(lambda ~ IUCNstatLong, data = IUCNVGTvL)
 ```
 
-![Figure 6: Boxplot showing the population growth rate of species in each conservation status category](Figures/IUCNvL.png)
+------------------------------------------------------------------------
+
+![Fig 6: Boxplot showing the population growth rate of species in each conservation status category.](Figures/IUCNvL.png)
+
+------------------------------------------------------------------------
 
 In the case of population growth rate, Near threatened and least concerned show no significant different from each other, or from species which have not been evaluated. Endangered species show a significantly decreased growth rate, as expected, whereas vulnerable species show an increased growth rate. This is potentially due to implementation of succsessful protective strategies increasing the growth rate of species which have been described as vulnerable.
+
+------------------------------------------------------------------------
 
 # open tree of life (Q4)
 
@@ -348,7 +378,11 @@ plot(PrunedTree, fsize = c(0.7,0.8))
 dev.off()
 ```
 
-![](Figures/PrunedTree.png)
+------------------------------------------------------------------------
+
+![Fig 7: Basic phylogeny.](Figures/PrunedTree.png)
+
+------------------------------------------------------------------------
 
 ## Plotting phylogeny with population parameters
 
@@ -372,7 +406,11 @@ dev.off()
 
 ```
 
-![](Figures/ContMapLambda.png)
+------------------------------------------------------------------------
+
+![Fig: 8 Phylogeny with population growth rate plotted by colour.](Figures/ContMapLambda.png)
+
+------------------------------------------------------------------------
 
 It doesn't appear that the population growth rate does is not affected by phylogenetic inertia. There is no clear clustering or relation between individuals with either particularly high or low growth rates, with growth rates often being very different from closely related individuals.
 
@@ -396,7 +434,11 @@ plot(ContMapGT, fsize=c(0.7,0.8), leg.txt =
 dev.off()
 ```
 
-![](Figures/ContMapGT.png)
+------------------------------------------------------------------------
+
+![Fig: 9 Phylogeny with population growth rate plotted by colour](Figures/ContMapGT.png)
+
+------------------------------------------------------------------------
 
 Generation time on the other hand shows a substantial effect of phylogenetic inertia. It is generally more closely matched between closely related individuals than those which are distantly related and shows strong clustering.
 
@@ -436,7 +478,11 @@ dotTree(PrunedTree, PopPerf, colors = setNames(
 dev.off()
 ```
 
-![](Figures/PerfTree.png)
+------------------------------------------------------------------------
+
+![Fig10: Phylogeny with the colour showing whether the species is increasing or decreasing in population number as well as their conservation status.](Figures/PerfTree.png)
+
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
